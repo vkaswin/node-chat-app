@@ -50,9 +50,9 @@ const login = async (req, res) => {
       return;
     }
 
-    let res = await User.findOne({ email });
+    let user = await User.findOne({ email });
 
-    if (!res) {
+    if (!user) {
       res.status(400).send({ message: "User not exist" });
       return;
     }
