@@ -1,5 +1,9 @@
-const auth = require("./Auth");
+const authRoutes = require("./authRoutes");
+const messageRoutes = require("./messageRoutes");
+const chatRoutes = require("./chatRoutes");
 
 module.exports = {
-  auth,
+  authRoutes,
+  messageRoutes,
+  chatRoutes,
 };

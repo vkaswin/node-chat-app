@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/db");
-const { auth } = require("./routes");
+const { authRoutes, chatRoutes, messageRoutes } = require("./routes");
 const port = process.env.PORT;
 
 connectDB();
@@ -15,7 +15,9 @@ app
   .use(cors())
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
-  .use("/api/auth", auth);
+  .use("/api/auth", authRoutes)
+  .use("/api/chat", chatRoutes)
+  .use("/api/message", messageRoutes);
 
 const io = require("socket.io")(server, {
   cors: { origin: "*" },

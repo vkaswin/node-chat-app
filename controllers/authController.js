@@ -9,15 +9,13 @@ const register = async (req, res) => {
 
   try {
     if (!userName || !email || !password) {
-      res.status(400).send({ message: "Please add all fields" });
-      return;
+      return res.status(400).send({ message: "Please add all fields" });
     }
 
-    let res = await User.findOne({ email });
+    let existingUser = await User.findOne({ email });
 
-    if (!res) {
-      res.status(400).send({ message: "User already exists" });
-      return;
+    if (existingUser) {
+      return res.status(400).send({ message: "User already exists" });
     }
 
     const salt = await bcrypt.genSalt();
@@ -31,7 +29,11 @@ const register = async (req, res) => {
 
     res.status(200).send({
       message: "User registerd successfully",
-      data: { userName: user.userName, email: user.email, userId: user._id },
+      data: {
+        userName: user.userName,
+        email: user.email,
+        userId: user._id,
+      },
     });
   } catch (err) {
     console.log(err);
@@ -46,22 +48,19 @@ const login = async (req, res) => {
 
   try {
     if (!email || !password) {
-      res.status(400).send({ message: "Please add all fields" });
-      return;
+      return res.status(400).send({ message: "Please add all fields" });
     }
 
     let user = await User.findOne({ email });
 
     if (!user) {
-      res.status(400).send({ message: "User not exist" });
-      return;
+      return res.status(400).send({ message: "User not exist" });
     }
 
     let checkPassword = await bcrypt.compare(password, user.password);
 
     if (!checkPassword) {
-      res.status(400).send({ message: "Wrong Password" });
-      return;
+      return res.status(400).send({ message: "Wrong Password" });
     }
 
     res.status(200).send({
