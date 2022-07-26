@@ -3,6 +3,8 @@ const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/db");
 const { authRoutes, chatRoutes, messageRoutes } = require("./routes");
+const { verifyToken } = require("./middleware");
+const { chatSocket } = require("./sockets");
 const port = process.env.PORT;
 
 connectDB();
@@ -15,17 +17,21 @@ app
   .use(cors())
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
-  .use("/api/auth", authRoutes)
-  .use("/api/chat", chatRoutes)
-  .use("/api/message", messageRoutes);
+  .use("/api/users", authRoutes)
+  .use(verifyToken)
+  .use("/api/chats", chatRoutes)
+  .use("/api/messages", messageRoutes)
+  .use("/", (req, res) => {
+    res.status(200).send({ message: "Success" });
+  });
 
 const io = require("socket.io")(server, {
   cors: { origin: "*" },
 });
 
-io.on("connection", (socket) => {
-  console.log(socket.id, "socket connected");
-});
+const chatNameSpace = io.of("/chats");
+
+chatNameSpace.on("connection", chatSocket);
 
 server.listen(port, () => {
   console.log(`server connected on port ${port}`);

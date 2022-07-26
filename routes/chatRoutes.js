@@ -1,9 +1,7 @@
 const { Router } = require("express");
-const {} = require("../controllers/chatController");
+const { getAllChat } = require("../controllers/chatController");
 const router = Router();
 
-router.get("/route", (req, res) => {
-  res.status(200).send({ message: "Success" });
-});
+router.get("/", getAllChat);
 
 module.exports = router;

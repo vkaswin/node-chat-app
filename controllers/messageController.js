@@ -4,17 +4,24 @@ const { Chat, Message } = require("../models");
 // @route POST /api/message/create
 const createMessage = async (req, res) => {
   try {
-    let { chatId = null, msg, date, userId } = req.body;
+    let { chatId, msg, date, from, to } = req.body;
+    let id;
+
     if (!msg || !date) {
       return res.status(400).send({ message: "Please fill all fields" });
     }
+
     if (!chatId) {
-      let chat = await Chat.create({ users: [userId] });
-      chatId = chat._id;
+      let chat = await Chat.create({ users: [from, to] });
+      id = chat._id;
     }
 
     let message = await Message.create({ msg, date });
-    message.chatId = chatId;
+
+    if (!chatId) {
+      message.chatId = id;
+    }
+
     return res.status(200).send({ message: "Success", data: message });
   } catch (err) {
     console.log(err);
