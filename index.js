@@ -18,12 +18,12 @@ app
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
   .use("/api/users", authRoutes)
-  .use(verifyToken)
-  .use("/api/chats", chatRoutes)
-  .use("/api/messages", messageRoutes)
   .use("/", (req, res) => {
     res.status(200).send({ message: "Success" });
-  });
+  })
+  .use(verifyToken)
+  .use("/api/chats", chatRoutes)
+  .use("/api/messages", messageRoutes);
 
 const io = require("socket.io")(server, {
   cors: { origin: "*" },
