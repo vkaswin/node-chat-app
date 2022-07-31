@@ -5,10 +5,10 @@ const jwt = require("jsonwebtoken");
 // @des register user
 // @route POST /api/auth/register
 const register = async (req, res) => {
-  const { userName, email, password } = req.body;
+  const { name, email, password } = req.body;
 
   try {
-    if (!userName || !email || !password) {
+    if (!name || !email || !password) {
       return res.status(400).send({ message: "Please add all fields" });
     }
 
@@ -22,7 +22,7 @@ const register = async (req, res) => {
     const hashPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
-      userName,
+      name,
       email,
       password: hashPassword,
     });
@@ -30,7 +30,7 @@ const register = async (req, res) => {
     res.status(200).send({
       message: "User registerd successfully",
       data: {
-        userName: user.userName,
+        name: user.name,
         email: user.email,
         userId: user._id,
       },

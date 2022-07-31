@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 
 const userSchema = mongoose.Schema(
   {
-    userName: {
+    name: {
       type: String,
-      required: [true, "Please add userName"],
+      required: [true, "Please add name"],
     },
     email: {
       type: String,
@@ -14,6 +14,12 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, "Please add password"],
     },
+    contacts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   {
     timestamps: true,
