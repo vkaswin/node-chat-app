@@ -1,9 +1,9 @@
 const authRoutes = require("./authRoutes");
-const messageRoutes = require("./messageRoutes");
 const chatRoutes = require("./chatRoutes");
+const messageRoutes = require("./messageRoutes");
 
 module.exports = {
   authRoutes,
-  messageRoutes,
   chatRoutes,
+  messageRoutes,
 };

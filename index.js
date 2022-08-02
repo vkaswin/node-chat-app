@@ -18,9 +18,6 @@ app
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
   .use("/api/users", authRoutes)
-  .use("/", (req, res) => {
-    res.status(200).send({ message: "Success" });
-  })
   .use(verifyToken)
   .use("/api/chats", chatRoutes)
   .use("/api/messages", messageRoutes);
