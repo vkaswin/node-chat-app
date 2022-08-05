@@ -8,13 +8,21 @@ const getAllChat = async (req, res) => {
       user: { userId },
     } = req;
 
-    let chat = await Chat.find({ users: { $in: userId } }).populate("users", {
-      userName: 1,
-      email: 1,
-      _id: 1,
+    const chats = await Chat.find({
+      users: { $in: userId },
+    }).populate("users", { _id: 1, name: 1, email: 1 });
+
+    let data = chats.map(({ users, createdAt, updatedAt, __v, _id }) => {
+      return {
+        _id,
+        user: users.find((user) => !user._id.equals(userId)),
+        createdAt,
+        updatedAt,
+        __v,
+      };
     });
 
-    res.status(200).send({ data: chat, message: "Success" });
+    res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
