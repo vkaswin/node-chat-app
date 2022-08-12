@@ -2,12 +2,11 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/db");
-const { authRoutes, chatRoutes, messageRoutes } = require("./routes");
-const { verifyToken } = require("./middleware");
+const routes = require("./routes");
 const { chatSocket } = require("./sockets");
 const port = process.env.PORT;
 
-connectDB();
+// connectDB();
 
 const app = express();
 
@@ -17,10 +16,7 @@ app
   .use(cors())
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
-  .use("/api/users", authRoutes)
-  .use(verifyToken)
-  .use("/api/chats", chatRoutes)
-  .use("/api/messages", messageRoutes);
+  .use(routes);
 
 const io = require("socket.io")(server, {
   cors: { origin: "*" },

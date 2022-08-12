@@ -2,7 +2,7 @@ const { Router } = require("express");
 const {
   createMessage,
   getMessagesByChatId,
-} = require("../controllers/messageController");
+} = require("../controllers/message");
 const router = Router();
 
 router.post("/create/:chatId", createMessage);
