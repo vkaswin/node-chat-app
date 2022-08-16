@@ -30,6 +30,17 @@ const getMetaData = async (req, res) => {
   }
 };
 
+const uploadFile = async (req, res) => {
+  try {
+    console.log(req.files);
+    res.status(200).send({ message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
 module.exports = {
   getMetaData,
+  uploadFile,
 };

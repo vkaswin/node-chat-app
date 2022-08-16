@@ -13,6 +13,7 @@ const app = express();
 const server = require("http").createServer(app);
 
 app
+  .use("*/images", express.static("public/images"))
   .use(cors())
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
