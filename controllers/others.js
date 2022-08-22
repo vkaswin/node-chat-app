@@ -1,5 +1,9 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+const domain =
+  process.env.NODE_ENV !== "production"
+    ? "http://localhost:8000"
+    : "https://chat-api-mern.herokuapp.com";
 
 const getMetaData = async (req, res) => {
   try {
@@ -32,8 +36,10 @@ const getMetaData = async (req, res) => {
 
 const uploadFile = async (req, res) => {
   try {
-    console.log(req.files);
-    res.status(200).send({ message: "Success" });
+    const data = req.files.map(({ originalname, path, type }) => {
+      return { fileName: originalname, url: `${domain}/${path}`, type };
+    });
+    res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });

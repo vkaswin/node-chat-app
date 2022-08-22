@@ -1,24 +1,135 @@
-const { Chat } = require("../models");
+const { Chat, Message } = require("../models");
 
-// @des Get all messages by chatId
-// @route GET /api/chat
-const getAllChat = async (req, res) => {
+// @des Get chat by id
+// @route GET /api/chat/:chatId
+const getChatById = async (req, res) => {
   try {
     const {
-      user: { userId },
+      params: { chatId },
+      user: { id },
+    } = req;
+
+    let {
+      users: [user],
+      messages,
+      _id,
+    } = await Chat.findById(chatId).populate(
+      "users",
+      { _id: 1, name: 1, email: 1 },
+      { _id: { $ne: id } }
+    );
+    res.status(200).send({ data: { _id, user, messages }, message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+// @des Get recent chats
+// @route GET /api/chat/recent
+const getRecentChats = async (req, res) => {
+  try {
+    const {
+      user: { id },
     } = req;
 
     const chats = await Chat.find({
-      users: { $in: userId },
-    }).populate("users", { _id: 1, name: 1, email: 1 });
+      users: id,
+      messages: { $ne: [] },
+    })
+      .sort({ updatedAt: -1 })
+      .populate("users", { _id: 1, name: 1, email: 1 }, { _id: { $ne: id } })
+      .populate(
+        "messages",
+        {
+          _id: 1,
+          msg: 1,
+          date: 1,
+          seen: 1,
+        },
+        {
+          to: { $eq: id },
+        }
+      );
 
-    let data = chats.map(({ users, createdAt, updatedAt, __v, _id }) => {
+    let data = chats.map(
+      ({ users: [user], createdAt, updatedAt, _id, messages }) => {
+        return {
+          _id,
+          user,
+          count: messages.length,
+          message: messages[messages.length - 1],
+          createdAt,
+          updatedAt,
+        };
+      }
+    );
+
+    res.status(200).send({ message: "Success", data });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+// @des Get favourite chats
+// @route GET /api/chat/favourite
+const getFavouriteChats = async (req, res) => {
+  try {
+    const {
+      user: { id },
+    } = req;
+
+    const chats = await Chat.find({
+      users: id,
+      messages: { $ne: [] },
+    })
+      .sort({ updatedAt: -1 })
+      .populate("users", { _id: 1, name: 1, email: 1 });
+
+    // console.log(chats);
+
+    let data = chats.map(({ users, createdAt, updatedAt, _id, messages }) => {
       return {
         _id,
-        user: users.find((user) => !user._id.equals(userId)),
+        user: users.find((user) => !user._id.equals(id)),
         createdAt,
         updatedAt,
-        __v,
+        messages,
+      };
+    });
+
+    res.status(200).send({ message: "Success", data });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+// @des Get group chats
+// @route GET /api/chat/group
+const getGroupChats = async (req, res) => {
+  try {
+    const {
+      user: { id },
+    } = req;
+
+    const chats = await Chat.find({
+      users: id,
+      messages: { $ne: [] },
+    })
+      .sort({ updatedAt: -1 })
+      .populate("users", { _id: 1, name: 1, email: 1 });
+
+    // console.log(chats);
+
+    let data = chats.map(({ users, createdAt, updatedAt, _id, messages }) => {
+      return {
+        _id,
+        user: users.find((user) => !user._id.equals(id)),
+        createdAt,
+        updatedAt,
+        messages,
       };
     });
 
@@ -30,5 +141,8 @@ const getAllChat = async (req, res) => {
 };
 
 module.exports = {
-  getAllChat,
+  getRecentChats,
+  getFavouriteChats,
+  getGroupChats,
+  getChatById,
 };

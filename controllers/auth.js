@@ -65,7 +65,11 @@ const login = async (req, res) => {
 
     res.status(200).send({
       message: "Login success",
-      token: generateJwtToken({ id: user.id }),
+      token: generateJwtToken({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      }),
     });
   } catch (err) {
     console.log(err);

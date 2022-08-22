@@ -1,4 +1,4 @@
-const { Message } = require("../models");
+const { Message, Chat } = require("../models");
 
 // @des create message
 // @route POST /api/message/create/:chatId
@@ -12,6 +12,7 @@ const createMessage = async (req, res) => {
     let data = await (
       await Message.create({ ...body, chatId })
     ).populate("reply");
+    await Chat.findByIdAndUpdate(chatId, { $push: { messages: data._id } });
     res.status(200).send({ message: "Success", data });
   } catch (err) {
     console.log(err);

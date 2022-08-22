@@ -6,17 +6,17 @@ const routes = require("./routes");
 const { chatSocket } = require("./sockets");
 const port = process.env.PORT;
 
-// connectDB();
+connectDB();
 
 const app = express();
 
 const server = require("http").createServer(app);
 
 app
-  .use("*/images", express.static("public/images"))
   .use(cors())
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
+  .use("*/images", express.static("public/images"))
   .use(routes);
 
 const io = require("socket.io")(server, {
