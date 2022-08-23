@@ -80,6 +80,10 @@ const getFavouriteChats = async (req, res) => {
       user: { id },
     } = req;
 
+    res.status(200).send({ message: "Success", data: [] });
+
+    return;
+
     const chats = await Chat.find({
       users: id,
       messages: { $ne: [] },
@@ -113,6 +117,10 @@ const getGroupChats = async (req, res) => {
     const {
       user: { id },
     } = req;
+
+    res.status(200).send({ message: "Success", data: [] });
+
+    return;
 
     const chats = await Chat.find({
       users: id,

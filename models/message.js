@@ -6,12 +6,7 @@ const messageScheme = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       index: true,
     },
-    from: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    to: {
+    sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
