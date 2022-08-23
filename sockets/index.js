@@ -3,6 +3,10 @@ const socketHandler = (socket) => {
     socket.join(roomId);
   });
 
+  socket.on("leave-room", (roomId) => {
+    socket.leave(roomId);
+  });
+
   socket.on("send-offer", (data, chatId) => {
     socket.to(chatId).emit("receive-offer", data);
   });
