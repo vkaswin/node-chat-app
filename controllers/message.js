@@ -29,8 +29,7 @@ const createMessage = async (req, res) => {
       await Message.create({ ...body, chatId, sender: id })
     ).populate("reply");
     const userId = user._id.toString();
-    socket.io?.to(chatId).emit("receive-message", data);
-    socket.io?.to(userId).emit("new-message", data);
+    socket.io?.to(userId).emit("new-message", { ...data, type: "recent" });
     await Chat.findByIdAndUpdate(chatId, { $push: { messages: data._id } });
     res.status(200).send({ message: "Success", data });
   } catch (err) {

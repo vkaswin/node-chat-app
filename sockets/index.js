@@ -7,6 +7,10 @@ const socketHandler = (socket) => {
     socket.leave(roomId);
   });
 
+  socket.on("send-message", (data, chatId) => {
+    socket.to(chatId).emit("receive-message", data);
+  });
+
   socket.on("send-offer", (data, chatId) => {
     socket.to(chatId).emit("receive-offer", data);
   });
