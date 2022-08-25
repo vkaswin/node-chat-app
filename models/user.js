@@ -14,12 +14,9 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [true, "Please add password"],
     },
-    contacts: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    status: {
+      type: Boolean,
+    },
   },
   {
     timestamps: true,

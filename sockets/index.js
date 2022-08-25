@@ -11,6 +11,10 @@ const socketHandler = (socket) => {
     socket.to(chatId).emit("receive-message", data);
   });
 
+  socket.on("user-status", (status) => {
+    socket.broadcast.emit("user-status", status);
+  });
+
   socket.on("send-offer", (data, chatId) => {
     socket.to(chatId).emit("receive-offer", data);
   });

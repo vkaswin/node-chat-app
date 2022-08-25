@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // @des register user
-// @route POST /api/auth/register
+// @route POST /api/user/register
 const register = async (req, res) => {
   const { name, email, password } = req.body;
 
@@ -42,7 +42,7 @@ const register = async (req, res) => {
 };
 
 // @des login user
-// @route POST /api/auth/login
+// @route POST /api/user/login
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -83,6 +83,8 @@ const generateJwtToken = (data) => {
   });
 };
 
+// @des login user
+// @route POST /api/user/:userId
 const getUserById = async (req, res) => {
   try {
     const {
@@ -102,8 +104,27 @@ const getUserById = async (req, res) => {
   }
 };
 
+// @des login user
+// @route PUT /api/user/status
+const updateUserStatus = async (req, res) => {
+  const {
+    user: { id },
+    body: { status },
+  } = req;
+
+  try {
+    let data = await User.findByIdAndUpdate(id, { $set: { status } });
+    console.log(data);
+    res.status(200).send({ message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
 module.exports = {
   register,
   login,
   getUserById,
+  updateUserStatus,
 };
