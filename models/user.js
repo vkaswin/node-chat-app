@@ -17,6 +17,9 @@ const userSchema = mongoose.Schema(
     status: {
       type: Boolean,
     },
+    avatar: {
+      type: String,
+    },
   },
   {
     timestamps: true,

@@ -1,5 +1,5 @@
 const { Message, Chat } = require("../models");
-const socket = require("../sockets");
+const socket = require("../socket");
 
 // @des create message
 // @route POST /api/message/create/:chatId
@@ -13,7 +13,7 @@ const createMessage = async (req, res) => {
 
     let chat = await Chat.findById(chatId, { users: 1 }).populate(
       "users",
-      { _id: 1, name: 1, email: 1 },
+      { passsword: 0 },
       { _id: { $ne: id } }
     );
 

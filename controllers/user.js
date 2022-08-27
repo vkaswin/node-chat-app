@@ -5,18 +5,17 @@ const jwt = require("jsonwebtoken");
 // @des register user
 // @route POST /api/user/register
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, avatar } = req.body;
 
   try {
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !avatar) {
       return res.status(400).send({ message: "Please add all fields" });
     }
 
     let existingUser = await User.findOne({ email });
 
-    if (existingUser) {
+    if (existingUser)
       return res.status(400).send({ message: "User already exists" });
-    }
 
     const salt = await bcrypt.genSalt();
     const hashPassword = await bcrypt.hash(password, salt);
@@ -25,6 +24,7 @@ const register = async (req, res) => {
       name,
       email,
       password: hashPassword,
+      avatar,
     });
 
     res.status(200).send({
@@ -33,6 +33,7 @@ const register = async (req, res) => {
         name: user.name,
         email: user.email,
         userId: user._id,
+        avatar: user.avatar,
       },
     });
   } catch (err) {
@@ -69,6 +70,7 @@ const login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        avatar: user.avatar,
       }),
     });
   } catch (err) {

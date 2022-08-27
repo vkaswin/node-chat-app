@@ -11,7 +11,7 @@ const getContact = async (req, res) => {
     let data = await Contact.find(
       { addedBy: id },
       { user: 1, chatId: 1 }
-    ).populate("user", { name: 1, email: 1, _id: 1, status: 1 });
+    ).populate("user", { password: 0 });
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
