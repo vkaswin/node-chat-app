@@ -6,19 +6,41 @@ const getChatById = async (req, res) => {
   try {
     const {
       params: { chatId },
+      query: { type = "" },
       user: { id },
     } = req;
 
-    let {
-      users: [user],
-      messages,
-      _id,
-    } = await Chat.findById(chatId).populate(
-      "users",
-      { password: 0 },
-      { _id: { $ne: id } }
-    );
-    res.status(200).send({ data: { _id, user, messages }, message: "Success" });
+    if (type === "group") {
+      let {
+        users: [{ name, status, avatar }],
+        messages,
+        _id,
+      } = await Chat.findById(chatId).populate(
+        "users",
+        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+        { _id: { $ne: id } }
+      );
+
+      res.status(200).send({
+        data: { _id, name, status, avatar, messages },
+        message: "Success",
+      });
+    } else {
+      let {
+        users: [{ name, status, avatar }],
+        messages,
+        _id,
+      } = await Chat.findById(chatId).populate(
+        "users",
+        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+        { _id: { $ne: id } }
+      );
+
+      res.status(200).send({
+        data: { _id, name, status, avatar, messages },
+        message: "Success",
+      });
+    }
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
@@ -38,7 +60,11 @@ const getRecentChats = async (req, res) => {
       messages: { $ne: [] },
     })
       .sort({ updatedAt: -1 })
-      .populate("users", { password: 0 }, { _id: { $ne: id } })
+      .populate(
+        "users",
+        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+        { _id: { $ne: id } }
+      )
       .populate(
         "messages",
         {
@@ -89,7 +115,7 @@ const getFavouriteChats = async (req, res) => {
       messages: { $ne: [] },
     })
       .sort({ updatedAt: -1 })
-      .populate("users", { password: 0 });
+      .populate("users", { _id: 1, name: 1, email: 1, avatar: 1, status: 1 });
 
     // console.log(chats);
 
@@ -127,7 +153,7 @@ const getGroupChats = async (req, res) => {
       messages: { $ne: [] },
     })
       .sort({ updatedAt: -1 })
-      .populate("users", { password: 0 });
+      .populate("users", { _id: 1, name: 1, email: 1, avatar: 1, status: 1 });
 
     // console.log(chats);
 

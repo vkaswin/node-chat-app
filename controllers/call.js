@@ -44,7 +44,11 @@ const callHistory = async (req, res) => {
     const calls = await Call.find({ users: id })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("users", { password: 0 }, { _id: { $ne: id } });
+      .populate(
+        "users",
+        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+        { _id: { $ne: id } }
+      );
 
     const data = calls.map(
       ({
