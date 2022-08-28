@@ -48,7 +48,7 @@ const getChatById = async (req, res) => {
         },
       });
     } else {
-      const { _id, users, messages } = chat;
+      const { _id, users, messages, favourites } = chat;
       const { name, email, status, avatar } = users.find(
         (user) => !user._id.equals(id)
       );
@@ -59,6 +59,7 @@ const getChatById = async (req, res) => {
         status,
         avatar,
         messages,
+        isFavourite: favourites.includes(id),
       };
 
       res.status(200).send({
@@ -85,6 +86,7 @@ const getRecentChats = async (req, res) => {
         users: id,
         messages: { $ne: [] },
         group: { $eq: null },
+        favourites: { $nin: [id] },
       },
       { group: 0 }
     )
@@ -142,28 +144,53 @@ const getFavouriteChats = async (req, res) => {
       user: { id },
     } = req;
 
-    res.status(200).send({ message: "Success", data: [] });
-
-    return;
-
-    const chats = await Chat.find({
-      users: id,
-      messages: { $ne: [] },
-    })
+    const chats = await Chat.find(
+      {
+        users: id,
+        messages: { $ne: [] },
+        group: { $eq: null },
+        favourites: { $in: [id] },
+      },
+      { group: 0 }
+    )
       .sort({ updatedAt: -1 })
-      .populate("users", { _id: 1, name: 1, email: 1, avatar: 1, status: 1 });
+      .populate(
+        "users",
+        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+        { _id: { $ne: id } }
+      )
+      .populate("messages", {
+        _id: 1,
+        msg: 1,
+        date: 1,
+        seen: 1,
+      });
 
-    // console.log(chats);
-
-    let data = chats.map(({ users, createdAt, updatedAt, _id, messages }) => {
-      return {
-        _id,
-        user: users.find((user) => !user._id.equals(id)),
+    let data = chats.map(
+      ({
+        users: [{ name, status, avatar, email }],
         createdAt,
         updatedAt,
+        _id,
         messages,
-      };
-    });
+      }) => {
+        const { msg, date, seen } = messages[messages.length - 1];
+        return {
+          _id,
+          name,
+          email,
+          avatar,
+          status,
+          msg,
+          seen,
+          date,
+          count: messages.length,
+          message: messages[messages.length - 1],
+          createdAt,
+          updatedAt,
+        };
+      }
+    );
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
@@ -250,10 +277,60 @@ const createGroupChat = async (req, res) => {
   }
 };
 
+const addToFavourite = async (req, res) => {
+  try {
+    const {
+      user: { id },
+      params: { chatId },
+    } = req;
+
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Invalid Chat Id" });
+
+    await Chat.findByIdAndUpdate(chatId, {
+      $push: {
+        favourites: id,
+      },
+    });
+
+    res.status(200).send({ message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(200).send({ message: "Error" });
+  }
+};
+
+const removeFromFavourite = async (req, res) => {
+  try {
+    const {
+      user: { id },
+      params: { chatId },
+    } = req;
+
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Invalid Chat Id" });
+
+    await Chat.findByIdAndUpdate(chatId, {
+      $pull: {
+        favourites: id,
+      },
+    });
+
+    res.status(200).send({ message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(200).send({ message: "Error" });
+  }
+};
+
 module.exports = {
   getRecentChats,
   getFavouriteChats,
   getGroupChats,
   getChatById,
   createGroupChat,
+  addToFavourite,
+  removeFromFavourite,
 };

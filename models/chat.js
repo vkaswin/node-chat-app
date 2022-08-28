@@ -25,6 +25,13 @@ const chatSchema = mongoose.Schema(
       default: null,
       _id: false,
     },
+    favourites: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: [],
+      },
+    ],
   },
   {
     timestamps: true,
