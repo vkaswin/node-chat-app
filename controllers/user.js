@@ -1,6 +1,6 @@
 const { User } = require("../models");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const { generateRandomColor, generateJwtToken } = require("../utils");
 
 // @des register user
 // @route POST /api/user/register
@@ -8,7 +8,7 @@ const register = async (req, res) => {
   const { name, email, password, avatar } = req.body;
 
   try {
-    if (!name || !email || !password || !avatar) {
+    if (!name || !email || !password) {
       return res.status(400).send({ message: "Please add all fields" });
     }
 
@@ -24,7 +24,7 @@ const register = async (req, res) => {
       name,
       email,
       password: hashPassword,
-      avatar,
+      avatar: generateRandomColor(),
     });
 
     res.status(200).send({
@@ -77,12 +77,6 @@ const login = async (req, res) => {
     console.log(err);
     res.status(400).send({ message: "Error" });
   }
-};
-
-const generateJwtToken = (data) => {
-  return jwt.sign(data, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
-  });
 };
 
 // @des login user

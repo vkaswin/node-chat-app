@@ -11,26 +11,38 @@ const createMessage = async (req, res) => {
       user: { id },
     } = req;
 
-    let chat = await Chat.findById(chatId, { users: 1 }).populate(
-      "users",
-      { passsword: 0 },
-      { _id: { $ne: id } }
-    );
+    let chat = await Chat.findById(chatId, { users: 1, group: 1 });
 
     if (!chat) {
       return res.status(400).send({ message: "Invalid Chat Id" });
     }
 
-    const {
-      users: [user],
-    } = chat;
-
     let data = await (
       await Message.create({ ...body, chatId, sender: id })
     ).populate("reply");
-    const userId = user._id.toString();
-    socket.io?.to(userId).emit("new-message", { ...data, type: "recent" });
+
     await Chat.findByIdAndUpdate(chatId, { $push: { messages: data._id } });
+
+    if (chat.group) {
+      chat.users.forEach((userId) => {
+        socket.io?.to(userId.toString()).emit("new-message", {
+          msg: data.msg,
+          date: data.date,
+          seen: data.seen,
+          type: "group",
+        });
+      });
+      return res.status(200).send({ message: "Success", data });
+    }
+
+    const { users } = chat;
+    const userId = users.find((userId) => !userId.equals(id));
+    socket.io?.to(userId.toString()).emit("new-message", {
+      msg: data.msg,
+      date: data.date,
+      seen: data.seen,
+      type: "recent",
+    });
     res.status(200).send({ message: "Success", data });
   } catch (err) {
     console.log(err);
