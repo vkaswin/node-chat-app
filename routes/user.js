@@ -4,6 +4,8 @@ const {
   register,
   getUserById,
   updateUserStatus,
+  getAllUsers,
+  searchUsers,
 } = require("../controllers/user");
 const { verifyToken } = require("../middleware");
 
@@ -17,6 +19,10 @@ router.use(verifyToken);
 
 router.put("/status", updateUserStatus);
 
-router.get("/:userId", getUserById);
+router.get("/detail/:userId", getUserById);
+
+router.get("/all", getAllUsers);
+
+router.get("/search", searchUsers);
 
 module.exports = router;

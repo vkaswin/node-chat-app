@@ -59,10 +59,10 @@ const getMessagesByChatId = async (req, res) => {
       query: { page, limit },
     } = req;
     let data = await Message.find({ chatId })
-      .sort({ date: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("reply");
+      .populate("reply")
+      .sort({ date: -1 });
     res.status(200).send({ message: "Success", data: data.reverse() });
   } catch (error) {
     console.log(error);

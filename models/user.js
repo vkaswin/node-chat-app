@@ -14,10 +14,10 @@ const userSchema = mongoose.Schema(
     },
     status: {
       type: Boolean,
+      default: false,
     },
     avatar: {
       type: String,
-      default: generateRandomColor(),
     },
   },
   {

@@ -109,9 +109,61 @@ const updateUserStatus = async (req, res) => {
   } = req;
 
   try {
-    let data = await User.findByIdAndUpdate(id, { $set: { status } });
-    console.log(data);
+    await User.findByIdAndUpdate(id, { $set: { status } });
     res.status(200).send({ message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    const {
+      user: { id },
+      query: { limit, page },
+    } = req;
+
+    let data = await User.find({ _id: { $ne: id } }, { password: 0 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({
+        name: 1,
+      });
+
+    res.status(200).send({ message: "Success", data });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+const searchUsers = async (req, res) => {
+  try {
+    const {
+      user: { id },
+      query: { search, limit, page },
+    } = req;
+
+    let data = await User.find(
+      {
+        _id: { $ne: id },
+        $or: [
+          {
+            name: { $regex: search, $options: "i" },
+          },
+          {
+            email: { $regex: search, $options: "i" },
+          },
+        ],
+      },
+      { password: 0 }
+    )
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ name: 1 });
+
+    res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
@@ -123,4 +175,6 @@ module.exports = {
   login,
   getUserById,
   updateUserStatus,
+  getAllUsers,
+  searchUsers,
 };

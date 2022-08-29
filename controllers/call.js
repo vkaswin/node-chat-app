@@ -25,7 +25,6 @@ const initiateCall = async (req, res) => {
     });
 
     const userId = chat.users.find((user) => user !== id);
-    console.log(userId);
     socket.io.to(userId).emit("offer", offer);
     res.status(200).send({ message: "Success" });
   } catch (error) {

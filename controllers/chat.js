@@ -90,7 +90,6 @@ const getRecentChats = async (req, res) => {
       },
       { group: 0 }
     )
-      .sort({ updatedAt: -1 })
       .populate(
         "users",
         { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
@@ -101,7 +100,8 @@ const getRecentChats = async (req, res) => {
         msg: 1,
         date: 1,
         seen: 1,
-      });
+      })
+      .sort({ updatedAt: -1 });
 
     let data = chats.map(
       ({
