@@ -1,3 +1,5 @@
+const { User } = require("../models");
+
 const socketHandler = (socket) => {
   socket.on("join-room", (roomId) => {
     socket.join(roomId);

@@ -49,9 +49,13 @@ const getChatById = async (req, res) => {
       });
     } else {
       const { _id, users, messages, favourites } = chat;
-      const { name, email, status, avatar } = users.find(
-        (user) => !user._id.equals(id)
-      );
+      const {
+        name,
+        email,
+        status,
+        avatar,
+        _id: userId,
+      } = users.find((user) => !user._id.equals(id));
       const data = {
         _id,
         name,
@@ -59,6 +63,7 @@ const getChatById = async (req, res) => {
         status,
         avatar,
         messages,
+        userId,
         isFavourite: favourites.includes(id),
       };
 
@@ -105,7 +110,7 @@ const getRecentChats = async (req, res) => {
 
     let data = chats.map(
       ({
-        users: [{ name, status, avatar, email }],
+        users: [{ name, status, avatar, email, _id: userId }],
         createdAt,
         updatedAt,
         _id,
@@ -121,6 +126,7 @@ const getRecentChats = async (req, res) => {
           msg,
           seen,
           date,
+          userId,
           count: messages.length,
           message: messages[messages.length - 1],
           createdAt,
@@ -168,7 +174,7 @@ const getFavouriteChats = async (req, res) => {
 
     let data = chats.map(
       ({
-        users: [{ name, status, avatar, email }],
+        users: [{ name, status, avatar, email, _id: userId }],
         createdAt,
         updatedAt,
         _id,
@@ -184,6 +190,7 @@ const getFavouriteChats = async (req, res) => {
           msg,
           seen,
           date,
+          userId,
           count: messages.length,
           message: messages[messages.length - 1],
           createdAt,

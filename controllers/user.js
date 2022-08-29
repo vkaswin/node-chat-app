@@ -1,11 +1,12 @@
 const { User } = require("../models");
 const bcrypt = require("bcryptjs");
 const { generateRandomColor, generateJwtToken } = require("../utils");
+const socket = require("../socket");
 
 // @des register user
 // @route POST /api/user/register
 const register = async (req, res) => {
-  const { name, email, password, avatar } = req.body;
+  const { name, email, password } = req.body;
 
   try {
     if (!name || !email || !password) {
@@ -110,6 +111,7 @@ const updateUserStatus = async (req, res) => {
 
   try {
     await User.findByIdAndUpdate(id, { $set: { status } });
+    socket.io.emit("user-status", { userId: id, status });
     res.status(200).send({ message: "Success" });
   } catch (error) {
     console.log(error);
