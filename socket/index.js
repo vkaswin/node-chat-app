@@ -1,5 +1,3 @@
-const { User } = require("../models");
-
 const socketHandler = (socket) => {
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
@@ -7,10 +5,6 @@ const socketHandler = (socket) => {
 
   socket.on("leave-room", (roomId) => {
     socket.leave(roomId);
-  });
-
-  socket.on("send-message", (data, chatId) => {
-    socket.to(chatId).emit("receive-message", data);
   });
 
   socket.on("user-status", (status) => {

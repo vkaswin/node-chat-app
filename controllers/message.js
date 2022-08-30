@@ -4,49 +4,57 @@ const socket = require("../socket");
 // @des create message
 // @route POST /api/message/create/:chatId
 const createMessage = async (req, res) => {
+  let chat, data, id;
+
   try {
     const {
       params: { chatId },
       body,
-      user: { id },
+      user,
     } = req;
 
-    let chat = await Chat.findById(chatId, { users: 1, group: 1 });
+    id = user.id;
+
+    chat = await Chat.findById(chatId, { users: 1, group: 1 });
 
     if (!chat) {
       return res.status(400).send({ message: "Invalid Chat Id" });
     }
 
-    let data = await (
+    data = await (
       await Message.create({ ...body, chatId, sender: id })
     ).populate("reply");
 
     await Chat.findByIdAndUpdate(chatId, { $push: { messages: data._id } });
 
+    socket.io.to(chatId).emit("receive-message", data);
+
+    res.status(200).send({ message: "Success", data });
+  } catch (err) {
+    console.log(err);
+    res.status(400).send({ message: "Error" });
+  } finally {
+    if (!chat || !id || !data) return;
+
     if (chat.group) {
       chat.users.forEach((userId) => {
-        socket.io?.to(userId.toString()).emit("new-message", {
+        socket.io.to(userId.toString()).emit("new-message", {
           msg: data.msg,
           date: data.date,
           seen: data.seen,
           type: "group",
         });
       });
-      return res.status(200).send({ message: "Success", data });
+    } else {
+      let { users } = chat;
+      let userId = users.find((userId) => !userId.equals(id));
+      socket.io.to(userId.toString()).emit("new-message", {
+        msg: data.msg,
+        date: data.date,
+        seen: data.seen,
+        type: "recent",
+      });
     }
-
-    const { users } = chat;
-    const userId = users.find((userId) => !userId.equals(id));
-    socket.io?.to(userId.toString()).emit("new-message", {
-      msg: data.msg,
-      date: data.date,
-      seen: data.seen,
-      type: "recent",
-    });
-    res.status(200).send({ message: "Success", data });
-  } catch (err) {
-    console.log(err);
-    res.status(400).send({ message: "Error" });
   }
 };
 
