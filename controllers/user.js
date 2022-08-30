@@ -2,6 +2,7 @@ const { User } = require("../models");
 const bcrypt = require("bcryptjs");
 const { generateRandomColor, generateJwtToken } = require("../utils");
 const socket = require("../socket");
+const jwt = require("jsonwebtoken");
 
 // @des register user
 // @route POST /api/user/register
@@ -104,12 +105,13 @@ const getUserById = async (req, res) => {
 // @des login user
 // @route PUT /api/user/status
 const updateUserStatus = async (req, res) => {
-  const {
-    user: { id },
-    body: { status },
-  } = req;
-
   try {
+    const {
+      body: { status, token },
+    } = req;
+
+    let { id } = await jwt.verify(token.split(`"`)[1], process.env.JWT_SECRET);
+
     await User.findByIdAndUpdate(id, { $set: { status } });
     socket.io.emit("user-status", { userId: id, status });
     res.status(200).send({ message: "Success" });

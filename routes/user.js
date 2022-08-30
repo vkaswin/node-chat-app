@@ -15,9 +15,9 @@ router.post("/login", login);
 
 router.post("/register", register);
 
-router.use(verifyToken);
-
 router.put("/status", updateUserStatus);
+
+router.use(verifyToken);
 
 router.get("/detail/:userId", getUserById);
 
