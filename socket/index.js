@@ -1,9 +1,13 @@
 const socketHandler = (socket) => {
-  socket.on("join-room", (roomId) => {
+  socket.on("join-user", (roomId) => {
     socket.join(roomId);
   });
 
-  socket.on("leave-room", (roomId) => {
+  socket.on("join-chat", (roomId) => {
+    socket.join(roomId);
+  });
+
+  socket.on("leave-chat", (roomId) => {
     socket.leave(roomId);
   });
 

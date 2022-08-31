@@ -50,8 +50,16 @@ const generateRandomColor = () => {
   return colors[index];
 };
 
+const getPagination = ({ list, page, limit, total }) => {
+  return {
+    pageMeta: { size: limit, page, total: Math.ceil(total / limit) },
+    list,
+  };
+};
+
 module.exports = {
   generateJwtToken,
   generateRandomColor,
+  getPagination,
   sendMail,
 };

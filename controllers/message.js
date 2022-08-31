@@ -1,4 +1,5 @@
 const { Message, Chat } = require("../models");
+const { getPagination } = require("../utils");
 const socket = require("../socket");
 
 // @des create message
@@ -15,7 +16,7 @@ const createMessage = async (req, res) => {
 
     id = user.id;
 
-    chat = await Chat.findById(chatId, { users: 1, group: 1 });
+    chat = await Chat.findById(chatId, { users: 1, group: 1, favourites: 1 });
 
     if (!chat) {
       return res.status(400).send({ message: "Invalid Chat Id" });
@@ -46,13 +47,14 @@ const createMessage = async (req, res) => {
         });
       });
     } else {
-      let { users } = chat;
+      let { users, favourites } = chat;
       let userId = users.find((userId) => !userId.equals(id));
+      let type = favourites.includes(userId) ? "favourite" : "recent";
       socket.io.to(userId.toString()).emit("new-message", {
         msg: data.msg,
         date: data.date,
         seen: data.seen,
-        type: "recent",
+        type,
       });
     }
   }
@@ -64,14 +66,21 @@ const getMessagesByChatId = async (req, res) => {
   try {
     const {
       params: { chatId },
-      query: { page, limit },
+      query: { page = 1, limit = 30 } = {},
     } = req;
-    let data = await Message.find({ chatId })
+    const total = await Message.find({ chatId }).countDocuments();
+    const messages = await Message.find({ chatId })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate("reply")
       .sort({ date: -1 });
-    res.status(200).send({ message: "Success", data: data.reverse() });
+    const data = getPagination({
+      list: messages.reverse(),
+      page: +page,
+      limit: +limit,
+      total,
+    });
+    res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
