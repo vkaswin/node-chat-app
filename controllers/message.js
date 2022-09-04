@@ -16,7 +16,12 @@ const createMessage = async (req, res) => {
 
     id = user.id;
 
-    chat = await Chat.findById(chatId, { users: 1, group: 1, favourites: 1 });
+    chat = await Chat.findById(chatId, {
+      users: 1,
+      group: 1,
+      favourites: 1,
+      unseen: 1,
+    });
 
     if (!chat) {
       return res.status(400).send({ message: "Invalid Chat Id" });
@@ -26,7 +31,10 @@ const createMessage = async (req, res) => {
       await Message.create({ ...body, chatId, sender: id })
     ).populate("reply");
 
-    await Chat.findByIdAndUpdate(chatId, { $push: { messages: data._id } });
+    await Chat.findByIdAndUpdate(chatId, {
+      $push: { unseen: data._id },
+      $set: { latest: data._id },
+    });
 
     socket.io.to(chatId).emit("receive-message", data);
 
@@ -38,25 +46,58 @@ const createMessage = async (req, res) => {
     if (!chat || !id || !data) return;
 
     if (chat.group) {
-      chat.users.forEach((userId) => {
+      let {
+        users,
+        unseen,
+        group: { name, avatar, description },
+        _id,
+      } = chat.toObject();
+
+      users.forEach((userId) => {
         socket.io.to(userId.toString()).emit("new-message", {
           msg: data.msg,
           date: data.date,
-          seen: data.seen,
+          count: unseen.length + 1,
+          name,
+          description,
+          avatar,
+          _id,
           type: "group",
         });
       });
-    } else {
-      let { users, favourites } = chat;
-      let userId = users.find((userId) => !userId.equals(id));
-      let type = favourites.includes(userId) ? "favourite" : "recent";
+
+      return;
+    }
+
+    chat = await chat.populate("users", {
+      _id: 1,
+      name: 1,
+      email: 1,
+      avatar: 1,
+      status: 1,
+    });
+
+    let { users, favourites, unseen, _id } = chat.toObject();
+
+    users.forEach(({ _id: userId, ...user }) => {
+      let type = favourites.some((id) => {
+        return id.toString() === userId.toString();
+      })
+        ? "favourite"
+        : "recent";
+
       socket.io.to(userId.toString()).emit("new-message", {
+        ...user,
+        userId,
         msg: data.msg,
         date: data.date,
-        seen: data.seen,
+        count: unseen.length + 1,
+        msg: data.msg,
+        date: data.date,
+        _id,
         type,
       });
-    }
+    });
   }
 };
 
@@ -69,17 +110,19 @@ const getMessagesByChatId = async (req, res) => {
       query: { page = 1, limit = 30 } = {},
     } = req;
     const total = await Message.find({ chatId }).countDocuments();
-    const messages = await Message.find({ chatId })
+    const data = await Message.find({ chatId })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate("reply")
-      .sort({ date: -1 });
-    const data = getPagination({
-      list: messages.reverse(),
-      page: +page,
-      limit: +limit,
-      total,
-    });
+      .sort({ date: -1 })
+      .transform((docs) => {
+        return getPagination({
+          list: docs.reverse(),
+          page: +page,
+          limit: +limit,
+          total,
+        });
+      });
     res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);

@@ -1,4 +1,5 @@
 const { Chat } = require("../models");
+const user = require("../models/user");
 const { generateRandomColor } = require("../utils");
 
 // @des Get chat by id
@@ -10,68 +11,50 @@ const getChatById = async (req, res) => {
       user: { id },
     } = req;
 
-    let chat = await Chat.findById(chatId).populate("users", {
-      _id: 1,
-      name: 1,
-      email: 1,
-      avatar: 1,
-      status: 1,
-    });
-
-    if (chat.group) {
-      const chatDetail = await chat.populate("group.admin group.createdBy", {
+    let data = await Chat.findById(chatId)
+      .populate("users", {
         _id: 1,
         name: 1,
         email: 1,
         avatar: 1,
         status: 1,
+      })
+      .transform(async (doc) => {
+        const { group = null, favourites, users, ...rest } = doc.toObject();
+
+        if (group) {
+          const chat = await doc.populate("group.admin group.createdBy", {
+            _id: 1,
+            name: 1,
+            email: 1,
+            avatar: 1,
+            status: 1,
+          });
+
+          const { group, ...rest } = chat.toObject();
+
+          return {
+            ...rest,
+            ...group,
+          };
+        }
+
+        const { _id: userId, ...user } = users.find(
+          (user) => !user._id.equals(id)
+        );
+
+        return {
+          ...rest,
+          ...user,
+          userId,
+          isFavourite: favourites.includes(id),
+        };
       });
 
-      const {
-        _id,
-        users,
-        messages,
-        group: { name, admin, createdAt, createdBy, description },
-      } = chatDetail;
-
-      return res.status(200).send({
-        message: "Success",
-        data: {
-          users,
-          name,
-          admin,
-          createdAt,
-          createdBy,
-          description,
-          messages,
-          _id,
-        },
-      });
-    } else {
-      const { _id, users, messages, favourites } = chat;
-      const {
-        name,
-        email,
-        status,
-        avatar,
-        _id: userId,
-      } = users.find((user) => !user._id.equals(id));
-      const data = {
-        _id,
-        name,
-        email,
-        status,
-        avatar,
-        messages,
-        userId,
-        isFavourite: favourites.includes(id),
-      };
-
-      res.status(200).send({
-        message: "Success",
-        data,
-      });
-    }
+    res.status(200).send({
+      message: "Success",
+      data,
+    });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
@@ -86,10 +69,10 @@ const getRecentChats = async (req, res) => {
       user: { id },
     } = req;
 
-    const chats = await Chat.find(
+    const data = await Chat.find(
       {
         users: id,
-        messages: { $ne: [] },
+        latest: { $ne: null },
         group: { $eq: null },
         favourites: { $nin: [id] },
       },
@@ -100,40 +83,28 @@ const getRecentChats = async (req, res) => {
         { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
         { _id: { $ne: id } }
       )
-      .populate("messages", {
-        _id: 1,
+      .populate("latest", {
         msg: 1,
         date: 1,
-        seen: 1,
       })
-      .sort({ updatedAt: -1 });
-
-    let data = chats.map(
-      ({
-        users: [{ name, status, avatar, email, _id: userId }],
-        createdAt,
-        updatedAt,
-        _id,
-        messages,
-      }) => {
-        const { msg, date, seen } = messages[messages.length - 1];
-        return {
-          _id,
-          name,
-          email,
-          avatar,
-          status,
-          msg,
-          seen,
-          date,
-          userId,
-          count: messages.length,
-          message: messages[messages.length - 1],
-          createdAt,
-          updatedAt,
-        };
-      }
-    );
+      .sort({ updatedAt: -1 })
+      .transform((docs) => {
+        return docs.map((doc) => {
+          const {
+            latest,
+            unseen,
+            users: [{ _id: userId, ...user }],
+            ...rest
+          } = doc.toObject();
+          return {
+            count: unseen.length,
+            ...latest,
+            ...user,
+            ...rest,
+            userId,
+          };
+        });
+      });
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
@@ -150,54 +121,42 @@ const getFavouriteChats = async (req, res) => {
       user: { id },
     } = req;
 
-    const chats = await Chat.find(
+    const data = await Chat.find(
       {
         users: id,
-        messages: { $ne: [] },
+        latest: { $ne: null },
         group: { $eq: null },
         favourites: { $in: [id] },
       },
       { group: 0 }
     )
-      .sort({ updatedAt: -1 })
       .populate(
         "users",
         { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
         { _id: { $ne: id } }
       )
-      .populate("messages", {
-        _id: 1,
+      .populate("latest", {
         msg: 1,
         date: 1,
-        seen: 1,
+      })
+      .sort({ updatedAt: -1 })
+      .transform((docs) => {
+        return docs.map((doc) => {
+          const {
+            latest,
+            unseen,
+            users: [{ _id: userId, ...user }],
+            ...rest
+          } = doc.toObject();
+          return {
+            count: unseen.length,
+            ...latest,
+            ...user,
+            ...rest,
+            userId,
+          };
+        });
       });
-
-    let data = chats.map(
-      ({
-        users: [{ name, status, avatar, email, _id: userId }],
-        createdAt,
-        updatedAt,
-        _id,
-        messages,
-      }) => {
-        const { msg, date, seen } = messages[messages.length - 1];
-        return {
-          _id,
-          name,
-          email,
-          avatar,
-          status,
-          msg,
-          seen,
-          date,
-          userId,
-          count: messages.length,
-          message: messages[messages.length - 1],
-          createdAt,
-          updatedAt,
-        };
-      }
-    );
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
@@ -214,47 +173,33 @@ const getGroupChats = async (req, res) => {
       user: { id },
     } = req;
 
-    const chat = await Chat.find({
-      users: id,
-      group: { $ne: null },
-      messages: { $ne: [] },
-    })
+    const data = await Chat.find(
+      {
+        users: id,
+        latest: { $ne: null },
+        group: { $ne: null },
+        messages: { $ne: [] },
+      },
+      { group: 1, unseen: 1, latest: 1 }
+    )
+      .populate("latest", { msg: 1, date: 1 })
       .sort({ updatedAt: -1 })
-      .populate("users group.admin group.createdBy", {
-        _id: 1,
-        name: 1,
-        email: 1,
-        avatar: 1,
-        status: 1,
-      })
-      .populate("messages", { _id: 1, msg: 1, date: 1, seen: 1 });
-
-    const data = chat.map(
-      ({
-        _id,
-        messages,
-        users,
-        createdAt,
-        updatedAt,
-        group: { name, description, avatar },
-      }) => {
-        const { msg, date, seen } = messages[messages.length - 1];
-        return {
-          _id,
-          name,
-          description,
-          message: messages[messages.length - 1],
-          count: messages.length,
-          msg,
-          date,
-          seen,
-          avatar,
-          users,
-          createdAt,
-          updatedAt,
-        };
-      }
-    );
+      .transform((docs) => {
+        return docs.map((doc) => {
+          const {
+            latest,
+            unseen,
+            group: { admin, ...group },
+            ...rest
+          } = doc.toObject();
+          return {
+            count: unseen.length,
+            ...latest,
+            ...group,
+            ...rest,
+          };
+        });
+      });
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {

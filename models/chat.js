@@ -17,9 +17,7 @@ const chatSchema = mongoose.Schema(
         ref: "User",
       },
     ],
-    messages: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Message", default: [] },
-    ],
+    unseen: [{ type: mongoose.Schema.Types.ObjectId, default: [] }],
     group: {
       type: groupSchema,
       default: null,
@@ -32,6 +30,11 @@ const chatSchema = mongoose.Schema(
         default: [],
       },
     ],
+    latest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      default: null,
+    },
   },
   {
     timestamps: true,

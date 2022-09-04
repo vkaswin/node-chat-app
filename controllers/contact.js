@@ -31,10 +31,19 @@ const createContact = async (req, res) => {
 
     const chat = await Chat.findOne({ users: { $all: [userId, id] } });
 
+    console.log(chat);
+
     if (!chat) {
-      const data = await Chat.create({ users: [userId, id] });
-      req.chatId = data._id;
+      const { _id } = await Chat.create({ users: [userId, id] });
+      req.chatId = _id;
     }
+
+    const isExist = await Contact.findOne({ addedBy: id, user: userId });
+
+    if (isExist)
+      return res
+        .status(200)
+        .send({ message: "Contact has been added already " });
 
     const data = await Contact.create({
       addedBy: id,
@@ -42,7 +51,7 @@ const createContact = async (req, res) => {
       chatId: chat ? chat._id : req.chatId,
     });
 
-    res.status(200).send({ message: "Success", data });
+    res.status(200).send({ message: "Success", data: data.toObject() });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
