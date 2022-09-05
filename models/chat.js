@@ -1,14 +1,5 @@
 const mongoose = require("mongoose");
 
-const groupSchema = {
-  name: { type: String },
-  avatar: { type: String },
-  description: { type: String },
-  admin: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-  createdAt: { type: Date },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-};
-
 const chatSchema = mongoose.Schema(
   {
     users: [
@@ -17,9 +8,15 @@ const chatSchema = mongoose.Schema(
         ref: "User",
       },
     ],
-    unseen: [{ type: mongoose.Schema.Types.ObjectId, default: [] }],
     group: {
-      type: groupSchema,
+      type: {
+        name: { type: String },
+        avatar: { type: String },
+        description: { type: String },
+        admin: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+        createdAt: { type: Date },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      },
       default: null,
       _id: false,
     },

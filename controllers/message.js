@@ -24,7 +24,7 @@ const createMessage = async (req, res) => {
     });
 
     if (!chat) {
-      return res.status(400).send({ message: "Invalid Chat Id" });
+      return res.status(400).send({ message: "Chat Id Not Found" });
     }
 
     data = await (
@@ -48,7 +48,6 @@ const createMessage = async (req, res) => {
     if (chat.group) {
       let {
         users,
-        unseen,
         group: { name, avatar, description },
         _id,
       } = chat.toObject();
@@ -57,7 +56,6 @@ const createMessage = async (req, res) => {
         socket.io.to(userId.toString()).emit("new-message", {
           msg: data.msg,
           date: data.date,
-          count: unseen.length + 1,
           name,
           description,
           avatar,
@@ -77,7 +75,7 @@ const createMessage = async (req, res) => {
       status: 1,
     });
 
-    let { users, favourites, unseen, _id } = chat.toObject();
+    let { users, favourites, _id } = chat.toObject();
 
     users.forEach(({ _id: userId, ...user }) => {
       let type = favourites.some((id) => {
@@ -91,7 +89,6 @@ const createMessage = async (req, res) => {
         userId,
         msg: data.msg,
         date: data.date,
-        count: unseen.length + 1,
         msg: data.msg,
         date: data.date,
         _id,
@@ -106,23 +103,45 @@ const createMessage = async (req, res) => {
 const getMessagesByChatId = async (req, res) => {
   try {
     const {
+      user: { id },
       params: { chatId },
       query: { page = 1, limit = 30 } = {},
     } = req;
-    const total = await Message.find({ chatId }).countDocuments();
-    const data = await Message.find({ chatId })
+
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
+    const total = await Message.find({
+      chatId,
+      sender: { $ne: id },
+      seen: { $in: [id] },
+    }).countDocuments();
+
+    const data = await Message.find({ chatId, seen: { $in: [id] } })
       .skip((page - 1) * limit)
       .limit(limit)
       .populate("reply")
       .sort({ date: -1 })
       .transform((docs) => {
-        return getPagination({
-          list: docs.reverse(),
-          page: +page,
-          limit: +limit,
-          total,
-        });
+        return {
+          ...getPagination({
+            list: docs.reverse(),
+            page: +page,
+            limit: +limit,
+            total,
+          }),
+        };
       });
+
+    const newMessages = await Message.find({
+      chatId,
+      sender: { $ne: id },
+      seen: { $nin: [id] },
+    });
+
+    if (newMessages.length > 0) data.newMessages = newMessages;
+
     res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);

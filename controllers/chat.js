@@ -1,4 +1,4 @@
-const { Chat } = require("../models");
+const { Chat, Message } = require("../models");
 const user = require("../models/user");
 const { generateRandomColor } = require("../utils");
 
@@ -92,12 +92,11 @@ const getRecentChats = async (req, res) => {
         return docs.map((doc) => {
           const {
             latest,
-            unseen,
             users: [{ _id: userId, ...user }],
             ...rest
           } = doc.toObject();
+
           return {
-            count: unseen.length,
             ...latest,
             ...user,
             ...rest,
@@ -105,6 +104,16 @@ const getRecentChats = async (req, res) => {
           };
         });
       });
+
+    for (let i = 0; i < data.length; i++) {
+      let count = await Message.find({
+        chatId: data[i]._id,
+        sender: { $ne: id },
+        seen: { $nin: [id] },
+      }).countDocuments();
+
+      data[i].count = count;
+    }
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
@@ -144,12 +153,10 @@ const getFavouriteChats = async (req, res) => {
         return docs.map((doc) => {
           const {
             latest,
-            unseen,
             users: [{ _id: userId, ...user }],
             ...rest
           } = doc.toObject();
           return {
-            count: unseen.length,
             ...latest,
             ...user,
             ...rest,
@@ -157,6 +164,16 @@ const getFavouriteChats = async (req, res) => {
           };
         });
       });
+
+    for (let i = 0; i < data.length; i++) {
+      let count = await Message.find({
+        chatId: data[i]._id,
+        sender: { $ne: id },
+        seen: { $nin: [id] },
+      }).countDocuments();
+
+      data[i].count = count;
+    }
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
@@ -178,7 +195,6 @@ const getGroupChats = async (req, res) => {
         users: id,
         latest: { $ne: null },
         group: { $ne: null },
-        messages: { $ne: [] },
       },
       { group: 1, unseen: 1, latest: 1 }
     )
@@ -188,18 +204,26 @@ const getGroupChats = async (req, res) => {
         return docs.map((doc) => {
           const {
             latest,
-            unseen,
             group: { admin, ...group },
             ...rest
           } = doc.toObject();
           return {
-            count: unseen.length,
             ...latest,
             ...group,
             ...rest,
           };
         });
       });
+
+    for (let i = 0; i < data.length; i++) {
+      const count = await Message.find({
+        chatId: data[i]._id,
+        sender: { $ne: id },
+        seen: { $nin: [id] },
+      }).countDocuments();
+
+      data[i].count = count;
+    }
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
@@ -238,7 +262,7 @@ const addToFavourite = async (req, res) => {
 
     const chat = await Chat.findById(chatId);
 
-    if (!chat) return res.status(400).send({ message: "Invalid Chat Id" });
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
     await Chat.findByIdAndUpdate(chatId, {
       $push: {
@@ -262,7 +286,7 @@ const removeFromFavourite = async (req, res) => {
 
     const chat = await Chat.findById(chatId);
 
-    if (!chat) return res.status(400).send({ message: "Invalid Chat Id" });
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
     await Chat.findByIdAndUpdate(chatId, {
       $pull: {
@@ -277,6 +301,37 @@ const removeFromFavourite = async (req, res) => {
   }
 };
 
+const markAsRead = async (req, res) => {
+  try {
+    const {
+      user: { id },
+      params: { chatId },
+      body: { msgId },
+    } = req;
+
+    const chat = await Chat.findById(chat);
+
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
+    if (Array.isArray(msgId)) {
+      const messages = msgId.map((_id) => {
+        return { _id, seen: { $push: id } };
+      });
+
+      console.log(messages);
+
+      await Message.updateMany({ chatId }, messages);
+    } else {
+      await Message.findByIdAndUpdate(msgId, { seen: { $push: id } });
+    }
+
+    return res.status(200).send({ message: "Success" });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
 module.exports = {
   getRecentChats,
   getFavouriteChats,
@@ -285,4 +340,19 @@ module.exports = {
   createGroupChat,
   addToFavourite,
   removeFromFavourite,
+  markAsRead,
 };
+
+// const count = await Message.find(
+//     { chatId: doc._id },
+//     { seen: { $nin: [userId] } }
+//   ).countDocuments();
+
+// { chatId: "630349d4634d5afb324cc562" },
+//       {
+//         $push: {
+//           seen: {
+//             $each: ["6303217405f1714edcfc1cb6", "63033ccb39175ac026b70761"],
+//           },
+//         },
+//       }

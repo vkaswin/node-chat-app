@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { Chat } = require("../models");
 
 const connectDB = async () => {
   try {

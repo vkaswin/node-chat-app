@@ -14,7 +14,7 @@ const initiateCall = async (req, res) => {
 
     const chat = await Chat.findById(chatId);
 
-    if (!chat) return res.status(400).send({ message: "Invalid Chat Id" });
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
     const data = await Call.create({
       users: chat.users,

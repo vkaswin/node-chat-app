@@ -16,10 +16,13 @@ const messageScheme = mongoose.Schema(
     date: {
       type: Date,
     },
-    seen: {
-      type: Boolean,
-      default: false,
-    },
+    seen: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        default: [],
+        ref: "User",
+      },
+    ],
     reply: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",

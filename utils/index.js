@@ -52,7 +52,12 @@ const generateRandomColor = () => {
 
 const getPagination = ({ list, page, limit, total }) => {
   return {
-    pageMeta: { size: limit, page, total: Math.ceil(total / limit) },
+    pageMeta: {
+      limit,
+      page,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
     list,
   };
 };
