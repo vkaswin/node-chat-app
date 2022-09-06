@@ -3,21 +3,19 @@ const { User } = require("../models");
 const users = new Map();
 
 const socketHandler = (socket) => {
-  console.log("connected", socket.id);
-  socket.on("join-user", (userId) => {
-    // console.log(userId);
-    // try {
-    //   console.log(userId, "connect");
-    //   if (!userId) return;
-    //   socket.join(userId);
-    //   await User.findByIdAndUpdate(userId, {
-    //     $set: { status: true },
-    //   });
-    //   socket.broadcast.emit("user-status", { userId, status: true });
-    //   users.set(socket.id, userId);
-    // } catch (error) {
-    //   console.log(error);
-    // }
+  socket.on("join-user", async (userId) => {
+    try {
+      if (!userId) return;
+
+      socket.join(userId);
+      await User.findByIdAndUpdate(userId, {
+        $set: { status: true },
+      });
+      socket.broadcast.emit("user-status", { userId, status: true });
+      users.set(socket.id, userId);
+    } catch (error) {
+      console.log(error);
+    }
   });
 
   socket.on("join-chat", (roomId) => {
@@ -40,21 +38,20 @@ const socketHandler = (socket) => {
     socket.to(chatId).emit("receive-answer", answer);
   });
 
-  socket.on("disconnect", () => {
-    // console.log(socket.id);
-    // try {
-    //   const userId = users.get(socket.id);
-    //   console.log(userId, "disconnect");
-    //   if (!userId) return;
-    //   await User.findByIdAndUpdate(userId, {
-    //     $set: { status: false },
-    //   });
-    //   socket.broadcast.emit("user-status", { userId, status: false });
-    //   users.delete(socket.id);
-    // } catch (error) {
-    //   console.log(error);
-    // }
-    // users.delete(socket.id);
+  socket.on("disconnect", async () => {
+    try {
+      const userId = users.get(socket.id);
+
+      if (!userId) return;
+
+      await User.findByIdAndUpdate(userId, {
+        $set: { status: false },
+      });
+      socket.broadcast.emit("user-status", { userId, status: false });
+      users.delete(socket.id);
+    } catch (error) {
+      console.log(error);
+    }
   });
 };
 
