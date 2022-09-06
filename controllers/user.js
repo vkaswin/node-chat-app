@@ -102,25 +102,6 @@ const getUserById = async (req, res) => {
   }
 };
 
-// @des login user
-// @route PUT /api/user/status
-const updateUserStatus = async (req, res) => {
-  try {
-    const {
-      body: { status, token },
-    } = req;
-
-    let { id } = await jwt.verify(token.split(`"`)[1], process.env.JWT_SECRET);
-
-    await User.findByIdAndUpdate(id, { $set: { status } });
-    socket.io.emit("user-status", { userId: id, status });
-    res.status(200).send({ message: "Success" });
-  } catch (error) {
-    console.log(error);
-    res.status(400).send({ message: "Error" });
-  }
-};
-
 const getAllUsers = async (req, res) => {
   try {
     const {
@@ -178,7 +159,6 @@ module.exports = {
   register,
   login,
   getUserById,
-  updateUserStatus,
   getAllUsers,
   searchUsers,
 };

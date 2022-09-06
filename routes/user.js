@@ -3,7 +3,6 @@ const {
   login,
   register,
   getUserById,
-  updateUserStatus,
   getAllUsers,
   searchUsers,
 } = require("../controllers/user");
@@ -14,8 +13,6 @@ const router = Router();
 router.post("/login", login);
 
 router.post("/register", register);
-
-router.put("/status", updateUserStatus);
 
 router.use(verifyToken);
 
