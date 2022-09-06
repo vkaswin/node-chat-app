@@ -22,6 +22,6 @@ router
   .route("/favourite/:chatId")
   .put(addToFavourite)
   .delete(removeFromFavourite);
-router.put("/markAsRead", markAsRead);
+router.put("/markAsRead/:chatId", markAsRead);
 
 module.exports = router;

@@ -309,20 +309,17 @@ const markAsRead = async (req, res) => {
       body: { msgId },
     } = req;
 
-    const chat = await Chat.findById(chat);
+    const chat = await Chat.findById(chatId);
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
     if (Array.isArray(msgId)) {
-      const messages = msgId.map((_id) => {
-        return { _id, seen: { $push: id } };
-      });
-
-      console.log(messages);
-
-      await Message.updateMany({ chatId }, messages);
+      await Message.updateMany(
+        { chatId, _id: { $in: msgId } },
+        { $push: { seen: id } }
+      );
     } else {
-      await Message.findByIdAndUpdate(msgId, { seen: { $push: id } });
+      await Message.findByIdAndUpdate(msgId, { $push: { seen: id } });
     }
 
     return res.status(200).send({ message: "Success" });
@@ -347,12 +344,3 @@ module.exports = {
 //     { chatId: doc._id },
 //     { seen: { $nin: [userId] } }
 //   ).countDocuments();
-
-// { chatId: "630349d4634d5afb324cc562" },
-//       {
-//         $push: {
-//           seen: {
-//             $each: ["6303217405f1714edcfc1cb6", "63033ccb39175ac026b70761"],
-//           },
-//         },
-//       }
