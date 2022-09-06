@@ -1,6 +1,6 @@
 const { Chat, Message } = require("../models");
-const user = require("../models/user");
 const { generateRandomColor } = require("../utils");
+const socket = require("../socket");
 
 // @des Get chat by id
 // @route GET /api/chat/detail/:chatId
@@ -322,6 +322,7 @@ const markAsRead = async (req, res) => {
       await Message.findByIdAndUpdate(msgId, { $push: { seen: id } });
     }
 
+    socket.io.to(chatId).emit("seen", { msgId, userId: id });
     return res.status(200).send({ message: "Success" });
   } catch (error) {
     console.log(error);
@@ -339,8 +340,3 @@ module.exports = {
   removeFromFavourite,
   markAsRead,
 };
-
-// const count = await Message.find(
-//     { chatId: doc._id },
-//     { seen: { $nin: [userId] } }
-//   ).countDocuments();

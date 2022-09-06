@@ -31,8 +31,6 @@ const createContact = async (req, res) => {
 
     const chat = await Chat.findOne({ users: { $all: [userId, id] } });
 
-    console.log(chat);
-
     if (!chat) {
       const { _id } = await Chat.create({ users: [userId, id] });
       req.chatId = _id;

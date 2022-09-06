@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { Message } = require("../models");
 
 const connectDB = async () => {
   try {

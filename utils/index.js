@@ -1,35 +1,9 @@
 const jwt = require("jsonwebtoken");
-const nodeMailer = require("nodemailer");
 
 const generateJwtToken = (data) => {
   return jwt.sign(data, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE,
   });
-};
-
-const sendMail = async ({ subject, to, html }) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
-
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      subject,
-      to,
-      html,
-    });
-    console.log(info.response);
-
-    return { status: 200, response: info.response };
-  } catch (error) {
-    console.log(error);
-  }
 };
 
 const generateRandomColor = () => {
@@ -66,5 +40,4 @@ module.exports = {
   generateJwtToken,
   generateRandomColor,
   getPagination,
-  sendMail,
 };

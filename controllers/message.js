@@ -20,7 +20,6 @@ const createMessage = async (req, res) => {
       users: 1,
       group: 1,
       favourites: 1,
-      unseen: 1,
     });
 
     if (!chat) {
@@ -28,7 +27,7 @@ const createMessage = async (req, res) => {
     }
 
     data = await (
-      await Message.create({ ...body, chatId, sender: id })
+      await Message.create({ ...body, chatId, sender: id, seen: [id] })
     ).populate("reply");
 
     await Chat.findByIdAndUpdate(chatId, {
@@ -36,7 +35,7 @@ const createMessage = async (req, res) => {
       $set: { latest: data._id },
     });
 
-    socket.io.to(chatId).emit("receive-message", data);
+    socket.io.to(chatId).emit("message", data);
 
     res.status(200).send({ message: "Success", data });
   } catch (err) {
@@ -114,8 +113,6 @@ const getMessagesByChatId = async (req, res) => {
 
     const total = await Message.find({
       chatId,
-      sender: { $ne: id },
-      seen: { $in: [id] },
     }).countDocuments();
 
     const data = await Message.find({ chatId, seen: { $in: [id] } })
