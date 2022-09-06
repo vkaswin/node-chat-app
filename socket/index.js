@@ -38,6 +38,24 @@ const socketHandler = (socket) => {
     socket.to(chatId).emit("receive-answer", answer);
   });
 
+  socket.on("start-typing", (chatId, user) => {
+    if (!Array.isArray(user))
+      return socket.to(user.id).emit("start-typing", user.name);
+
+    user.forEach(({ id, name }) => {
+      socket.to(id).emit("start-typing", name);
+    });
+  });
+
+  socket.on("end-typing", (chatId, user) => {
+    if (!Array.isArray(user))
+      return socket.to(user.id).emit("start-typing", user.name);
+
+    user.forEach(({ id, name }) => {
+      socket.to(id).emit("start-typing", name);
+    });
+  });
+
   socket.on("disconnect", async () => {
     try {
       const userId = users.get(socket.id);
