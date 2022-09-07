@@ -40,19 +40,19 @@ const socketHandler = (socket) => {
 
   socket.on("start-typing", (chatId, user) => {
     if (!Array.isArray(user))
-      return socket.to(user.id).emit("start-typing", user.name);
+      return socket.to(user.id).emit("start-typing", chatId, user.name);
 
     user.forEach(({ id, name }) => {
-      socket.to(id).emit("start-typing", name);
+      socket.to(id).emit("start-typing", chatId, name);
     });
   });
 
   socket.on("end-typing", (chatId, user) => {
     if (!Array.isArray(user))
-      return socket.to(user.id).emit("start-typing", user.name);
+      return socket.to(user.id).emit("end-typing", chatId);
 
-    user.forEach(({ id, name }) => {
-      socket.to(id).emit("start-typing", name);
+    user.forEach(({ id }) => {
+      socket.to(id).emit("end-typing", chatId);
     });
   });
 
