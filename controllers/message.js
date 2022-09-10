@@ -51,17 +51,23 @@ const createMessage = async (req, res) => {
         _id,
       } = chat.toObject();
 
-      users.forEach((userId) => {
-        socket.io.to(userId.toString()).emit("new-message", {
-          msg: data.msg,
-          date: data.date,
-          name,
-          description,
-          avatar,
-          _id,
-          type: "group",
-        });
-      });
+      users.forEach(
+        (id) => {
+          let userId = id.toString();
+
+          socket.io.to(userId).emit("new-message", {
+            msg: data.msg,
+            date: data.date,
+            name,
+            description,
+            avatar,
+            _id,
+            type: "group",
+          });
+        },
+        data.sender,
+        userId
+      );
 
       return;
     }
@@ -76,27 +82,33 @@ const createMessage = async (req, res) => {
 
     let { users, favourites, _id } = chat.toObject();
 
-    users.forEach(({ _id: userId }) => {
+    users.forEach(({ _id: id }) => {
+      let userId = id.toString();
       let user = users.find(({ _id }) => {
-        return _id.toString() !== userId.toString();
+        return _id.toString() !== userId;
       });
 
       let type = favourites.some((id) => {
-        return id.toString() === userId.toString();
+        return id.toString() === userId;
       })
         ? "favourite"
         : "recent";
 
-      socket.io.to(userId.toString()).emit("new-message", {
-        ...user,
-        userId,
-        msg: data.msg,
-        date: data.date,
-        msg: data.msg,
-        date: data.date,
-        _id,
-        type,
-      });
+      socket.io.to(userId).emit(
+        "new-message",
+        {
+          ...user,
+          userId,
+          msg: data.msg,
+          date: data.date,
+          msg: data.msg,
+          date: data.date,
+          _id,
+          type,
+        },
+        data.sender,
+        userId
+      );
     });
   }
 };
