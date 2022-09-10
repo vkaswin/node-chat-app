@@ -76,7 +76,11 @@ const createMessage = async (req, res) => {
 
     let { users, favourites, _id } = chat.toObject();
 
-    users.forEach(({ _id: userId, ...user }) => {
+    users.forEach(({ _id: userId }) => {
+      let user = users.find(({ _id }) => {
+        return _id.toString() !== userId.toString();
+      });
+
       let type = favourites.some((id) => {
         return id.toString() === userId.toString();
       })

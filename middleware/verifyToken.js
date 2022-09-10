@@ -15,4 +15,26 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-module.exports = verifyToken;
+const verifyTokenSocket = async (socket, next) => {
+  const {
+    handshake: {
+      auth: { token },
+    },
+  } = socket;
+
+  if (!token) return next();
+
+  try {
+    let decoded = await jwt.verify(token.split(`"`)[1], process.env.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+module.exports = {
+  verifyToken,
+  verifyTokenSocket,
+};

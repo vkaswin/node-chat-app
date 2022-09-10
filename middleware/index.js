@@ -1,5 +1,6 @@
-const verifyToken = require("./verifyToken");
+const { verifyToken, verifyTokenSocket } = require("./verifyToken");
 
 module.exports = {
   verifyToken,
+  verifyTokenSocket,
 };

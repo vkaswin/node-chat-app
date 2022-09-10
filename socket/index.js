@@ -1,28 +1,35 @@
 const { User } = require("../models");
+const { verifyTokenSocket } = require("../middleware");
 
-const users = new Map();
+const socketHandler = async (socket) => {
+  const {
+    user,
+    handshake: {
+      auth: { chatId },
+    },
+  } = socket;
 
-const socketHandler = (socket) => {
-  socket.on("join-user", async (userId) => {
+  if (user) {
     try {
-      if (!userId) return;
-
-      socket.join(userId);
-      await User.findByIdAndUpdate(userId, {
+      if (chatId) {
+        socket.join([user.id, chatId]);
+      } else {
+        socket.join(user.id);
+      }
+      await User.findByIdAndUpdate(user.id, {
         $set: { status: true },
       });
-      socket.broadcast.emit("user-status", { userId, status: true });
-      users.set(socket.id, userId);
+      socket.broadcast.emit("user-status", { userId: user.id, status: true });
     } catch (error) {
       console.log(error);
     }
-  });
+  }
 
-  socket.on("join-chat", (roomId) => {
+  socket.on("join-room", (roomId) => {
     socket.join(roomId);
   });
 
-  socket.on("leave-chat", (roomId) => {
+  socket.on("leave-room", (roomId) => {
     socket.leave(roomId);
   });
 
@@ -58,15 +65,16 @@ const socketHandler = (socket) => {
 
   socket.on("disconnect", async () => {
     try {
-      const userId = users.get(socket.id);
-
-      if (!userId) return;
-
-      await User.findByIdAndUpdate(userId, {
+      if (!user) return;
+      if (chatId) {
+        socket.leave([user.id, chatId]);
+      } else {
+        socket.leave(user.id);
+      }
+      await User.findByIdAndUpdate(user.id, {
         $set: { status: false },
       });
-      socket.broadcast.emit("user-status", { userId, status: false });
-      users.delete(socket.id);
+      socket.broadcast.emit("user-status", { userId: user.id, status: false });
     } catch (error) {
       console.log(error);
     }
@@ -79,6 +87,8 @@ const socket = {
     this.io = require("socket.io")(server, {
       cors: { origin: "*" },
     });
+
+    this.io.use(verifyTokenSocket);
 
     this.io.on("connection", socketHandler);
   },
