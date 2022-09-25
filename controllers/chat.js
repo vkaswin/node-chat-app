@@ -1,6 +1,7 @@
 const { Chat, Message } = require("../models");
 const { generateRandomColor } = require("../utils");
 const socket = require("../socket");
+const mongoose = require("mongoose");
 
 // @des Get chat by id
 // @route GET /api/chat/detail/:chatId
@@ -61,162 +62,131 @@ const getChatById = async (req, res) => {
   }
 };
 
-// @des Get recent chats
-// @route GET /api/chat/recent
-const getRecentChats = async (req, res) => {
+// @des Get chat by type
+// @route GET /api/chat/list/:type
+const getChatsByType = async (req, res) => {
   try {
-    const {
+    let {
       user: { id },
+      params: { type },
     } = req;
 
-    const data = await Chat.find(
-      {
-        users: id,
-        latest: { $ne: null },
-        group: { $eq: null },
-        favourites: { $nin: [id] },
-      },
-      { group: 0 }
-    )
-      .populate(
-        "users",
-        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
-        { _id: { $ne: id } }
-      )
-      .populate("latest", {
-        msg: 1,
-        date: 1,
-      })
-      .sort({ updatedAt: -1 })
-      .transform((docs) => {
-        return docs.map((doc) => {
-          const {
-            latest,
-            users: [{ _id: userId, ...user }],
-            ...rest
-          } = doc.toObject();
+    let data;
 
-          return {
-            ...latest,
-            ...user,
-            ...rest,
-            userId,
-          };
-        });
-      });
+    id = mongoose.Types.ObjectId(id);
+
+    if (type === "recent" || type === "favourite") {
+      data = await Chat.aggregate([
+        {
+          $match: {
+            users: id,
+            latest: { $ne: null },
+            group: { $eq: null },
+            favourites: { [type === "recent" ? "$nin" : "$in"]: [id] },
+          },
+        },
+        {
+          $sort: { updatedAt: -1 },
+        },
+        {
+          $project: {
+            user: {
+              $filter: {
+                input: "$users",
+                as: "user",
+                cond: { $ne: ["$$user", id] },
+              },
+            },
+            latest: 1,
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "user",
+            pipeline: [
+              {
+                $project: {
+                  _id: 0,
+                  id: "$_id",
+                  name: 1,
+                  email: 1,
+                  avatar: 1,
+                  status: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: "messages",
+            localField: "latest",
+            foreignField: "_id",
+            as: "latest",
+            pipeline: [
+              {
+                $project: {
+                  _id: 0,
+                  msg: 1,
+                  date: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $unwind: "$user",
+        },
+        {
+          $unwind: "$latest",
+        },
+      ]);
+    } else if (type === "group") {
+      data = await Chat.aggregate([
+        {
+          $match: {
+            users: id,
+            latest: { $ne: null },
+            group: { $ne: null },
+          },
+        },
+        {
+          $project: {
+            "group.name": "$group.name",
+            "group.avatar": "$group.avatar",
+            latest: 1,
+          },
+        },
+        {
+          $lookup: {
+            from: "messages",
+            localField: "latest",
+            foreignField: "_id",
+            as: "latest",
+            pipeline: [
+              {
+                $project: {
+                  _id: 0,
+                  msg: 1,
+                  date: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $unwind: "$latest",
+        },
+      ]);
+    } else {
+      req.status(400).send({ message: "Invalid chat type" });
+    }
 
     for (let i = 0; i < data.length; i++) {
       let count = await Message.find({
-        chatId: data[i]._id,
-        sender: { $ne: id },
-        seen: { $nin: [id] },
-      }).countDocuments();
-
-      data[i].count = count;
-    }
-
-    res.status(200).send({ message: "Success", data });
-  } catch (error) {
-    console.log(error);
-    res.status(400).send({ message: "Error" });
-  }
-};
-
-// @des Get favourite chats
-// @route GET /api/chat/favourite
-const getFavouriteChats = async (req, res) => {
-  try {
-    const {
-      user: { id },
-    } = req;
-
-    const data = await Chat.find(
-      {
-        users: id,
-        latest: { $ne: null },
-        group: { $eq: null },
-        favourites: { $in: [id] },
-      },
-      { group: 0 }
-    )
-      .populate(
-        "users",
-        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
-        { _id: { $ne: id } }
-      )
-      .populate("latest", {
-        msg: 1,
-        date: 1,
-      })
-      .sort({ updatedAt: -1 })
-      .transform((docs) => {
-        return docs.map((doc) => {
-          const {
-            latest,
-            users: [{ _id: userId, ...user }],
-            ...rest
-          } = doc.toObject();
-          return {
-            ...latest,
-            ...user,
-            ...rest,
-            userId,
-          };
-        });
-      });
-
-    for (let i = 0; i < data.length; i++) {
-      let count = await Message.find({
-        chatId: data[i]._id,
-        sender: { $ne: id },
-        seen: { $nin: [id] },
-      }).countDocuments();
-
-      data[i].count = count;
-    }
-
-    res.status(200).send({ message: "Success", data });
-  } catch (error) {
-    console.log(error);
-    res.status(400).send({ message: "Error" });
-  }
-};
-
-// @des Get group chats
-// @route GET /api/chat/group
-const getGroupChats = async (req, res) => {
-  try {
-    const {
-      user: { id },
-    } = req;
-
-    const data = await Chat.find(
-      {
-        users: id,
-        latest: { $ne: null },
-        group: { $ne: null },
-      },
-      { group: 1, unseen: 1, latest: 1 }
-    )
-      .populate("latest", { msg: 1, date: 1 })
-      .sort({ updatedAt: -1 })
-      .transform((docs) => {
-        return docs.map((doc) => {
-          const {
-            latest,
-            group: { admin, ...group },
-            ...rest
-          } = doc.toObject();
-          return {
-            ...latest,
-            ...group,
-            ...rest,
-          };
-        });
-      });
-
-    for (let i = 0; i < data.length; i++) {
-      const count = await Message.find({
         chatId: data[i]._id,
         sender: { $ne: id },
         seen: { $nin: [id] },
@@ -331,12 +301,46 @@ const markAsRead = async (req, res) => {
 };
 
 module.exports = {
-  getRecentChats,
-  getFavouriteChats,
-  getGroupChats,
+  getChatsByType,
   getChatById,
   createGroupChat,
   addToFavourite,
   removeFromFavourite,
   markAsRead,
 };
+
+// const data = await Chat.find(
+//   {
+//     users: id,
+//     latest: { $ne: null },
+//     group: { $eq: null },
+//     favourites: { $nin: [id] },
+//   },
+//   { group: 0 }
+// )
+//   .populate(
+//     "users",
+//     { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+//     { _id: { $ne: id } }
+//   )
+//   .populate("latest", {
+//     msg: 1,
+//     date: 1,
+//   })
+//   .sort({ updatedAt: -1 })
+//   .transform((docs) => {
+//     return docs.map((doc) => {
+//       const {
+//         latest,
+//         users: [{ _id: userId, ...user }],
+//         ...rest
+//       } = doc.toObject();
+
+//       return {
+//         ...latest,
+//         ...user,
+//         ...rest,
+//         userId,
+//       };
+//     });
+//   });

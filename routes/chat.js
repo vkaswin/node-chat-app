@@ -1,9 +1,7 @@
 const { Router } = require("express");
 const {
-  getRecentChats,
-  getFavouriteChats,
-  getGroupChats,
   getChatById,
+  getChatsByType,
   createGroupChat,
   addToFavourite,
   removeFromFavourite,
@@ -14,9 +12,7 @@ const router = Router();
 
 router.use(verifyToken);
 router.get("/detail/:chatId", getChatById);
-router.get("/recent", getRecentChats);
-router.get("/favourite", getFavouriteChats);
-router.get("/group", getGroupChats);
+router.get("/list/:type", getChatsByType);
 router.post("/group/create", createGroupChat);
 router
   .route("/favourite/:chatId")
