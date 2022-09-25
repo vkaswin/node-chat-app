@@ -308,39 +308,3 @@ module.exports = {
   removeFromFavourite,
   markAsRead,
 };
-
-// const data = await Chat.find(
-//   {
-//     users: id,
-//     latest: { $ne: null },
-//     group: { $eq: null },
-//     favourites: { $nin: [id] },
-//   },
-//   { group: 0 }
-// )
-//   .populate(
-//     "users",
-//     { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
-//     { _id: { $ne: id } }
-//   )
-//   .populate("latest", {
-//     msg: 1,
-//     date: 1,
-//   })
-//   .sort({ updatedAt: -1 })
-//   .transform((docs) => {
-//     return docs.map((doc) => {
-//       const {
-//         latest,
-//         users: [{ _id: userId, ...user }],
-//         ...rest
-//       } = doc.toObject();
-
-//       return {
-//         ...latest,
-//         ...user,
-//         ...rest,
-//         userId,
-//       };
-//     });
-//   });
