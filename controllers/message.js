@@ -1,6 +1,7 @@
 const { Message, Chat } = require("../models");
 const { getPagination } = require("../utils");
 const socket = require("../socket");
+const mongoose = require("mongoose");
 
 // @des create message
 // @route POST /api/message/create/:chatId
@@ -22,16 +23,13 @@ const createMessage = async (req, res) => {
       favourites: 1,
     });
 
-    if (!chat) {
-      return res.status(400).send({ message: "Chat Id Not Found" });
-    }
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
-    data = await (
-      await Message.create({ ...body, chatId, sender: id, seen: [id] })
-    ).populate("reply");
+    data = await Message.create({ ...body, chatId, sender: id, seen: [id] });
+    data = await data.populate("reply");
 
     await Chat.findByIdAndUpdate(chatId, {
-      $push: { unseen: data._id },
+      $push: { messages: data._id },
       $set: { latest: data._id },
     });
 
@@ -47,27 +45,30 @@ const createMessage = async (req, res) => {
     if (chat.group) {
       let {
         users,
-        group: { name, avatar, description },
+        group: { name, avatar },
         _id,
       } = chat.toObject();
 
-      users.forEach(
-        (id) => {
-          let userId = id.toString();
-
-          socket.io.to(userId).emit("new-message", {
-            msg: data.msg,
-            date: data.date,
-            name,
-            description,
-            avatar,
+      users.forEach((id) => {
+        let userId = id.toString();
+        socket.io.to(userId).emit(
+          "new-message",
+          {
+            latest: {
+              msg: data.msg,
+              date: data.date,
+            },
+            group: {
+              name,
+              avatar,
+            },
             _id,
             type: "group",
-          });
-        },
-        data.sender,
-        userId
-      );
+          },
+          data.sender,
+          userId
+        );
+      });
 
       return;
     }
@@ -97,12 +98,8 @@ const createMessage = async (req, res) => {
       socket.io.to(userId).emit(
         "new-message",
         {
-          ...user,
-          userId,
-          msg: data.msg,
-          date: data.date,
-          msg: data.msg,
-          date: data.date,
+          user,
+          latest: { msg: data.msg, date: data.date },
           _id,
           type,
         },
@@ -117,43 +114,105 @@ const createMessage = async (req, res) => {
 // @route POST /api/message/:chatId
 const getMessagesByChatId = async (req, res) => {
   try {
-    const {
+    let {
       user: { id },
       params: { chatId },
-      query: { page = 1, limit = 30 } = {},
+      query: { page = 1, limit = 30, type = null } = {},
     } = req;
+
+    id = mongoose.Types.ObjectId(id);
+    chatId = mongoose.Types.ObjectId(chatId);
+
+    limit = +limit;
+    page = +page;
 
     const chat = await Chat.findById(chatId);
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
-    const total = await Message.find({
-      chatId,
-    }).countDocuments();
+    let total;
 
-    const data = await Message.find({ chatId, seen: { $in: [id] } })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate("reply")
-      .sort({ date: -1 })
-      .transform((docs) => {
-        return {
-          ...getPagination({
-            list: docs.reverse(),
-            page: +page,
-            limit: +limit,
-            total,
-          }),
-        };
-      });
+    if (type === "new") {
+      total = await Message.find({
+        chatId,
+        seen: { $ne: id },
+      }).countDocuments();
+    } else {
+      total = await Message.find({
+        chatId,
+      }).countDocuments();
+    }
 
-    const newMessages = await Message.find({
-      chatId,
-      sender: { $ne: id },
-      seen: { $nin: [id] },
-    });
+    const list = await Message.aggregate([
+      {
+        $match: {
+          chatId,
+          seen: { [type === "new" ? "$ne" : "$eq"]: id },
+        },
+      },
+      {
+        $sort: {
+          date: type === "new" ? 1 : -1,
+        },
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "messages",
+          localField: "reply",
+          foreignField: "_id",
+          as: "reply",
+        },
+      },
+      {
+        $addFields: {
+          day: {
+            $dateToString: {
+              date: "$date",
+              format: "%Y-%m-%d",
+            },
+          },
+        },
+      },
+      {
+        $sort: {
+          day: 1,
+          date: 1,
+        },
+      },
+      {
+        $group: {
+          _id: "$day",
+          messages: {
+            $push: {
+              _id: "$_id",
+              chatId: "$chatId",
+              sender: "$sender",
+              msg: "$msg",
+              seen: "$seen",
+              date: "$date",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          day: "$_id",
+          messages: 1,
+        },
+      },
+      {
+        $sort: {
+          day: 1,
+        },
+      },
+    ]);
 
-    if (newMessages.length > 0) data.newMessages = newMessages;
+    const data = getPagination({ list, limit, page, total });
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
