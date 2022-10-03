@@ -319,7 +319,8 @@ const getChatsByType = async (req, res) => {
         {
           $project: {
             _id: 1,
-            latest: 1,
+            msg: "$latest.msg",
+            date: "$latest.date",
             user: {
               $first: "$user",
             },
@@ -377,11 +378,21 @@ const getChatsByType = async (req, res) => {
         },
         {
           $project: {
-            "group.name": "$group.name",
-            "group.avatar": "$group.avatar",
             latest: {
               $first: "$latest",
             },
+            group: 1,
+            messages: 1,
+          },
+        },
+        {
+          $project: {
+            group: {
+              name: "$group.name",
+              avatar: "$group.avatar",
+            },
+            msg: "$latest.msg",
+            date: "$latest.date",
             count: {
               $size: "$messages",
             },
