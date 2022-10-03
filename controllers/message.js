@@ -54,16 +54,14 @@ const createMessage = async (req, res) => {
         socket.io.to(userId).emit(
           "new-message",
           {
-            latest: {
-              msg: data.msg,
-              date: data.date,
-            },
+            _id,
+            msg: data.msg,
+            date: data.date,
+            type: "group",
             group: {
               name,
               avatar,
             },
-            _id,
-            type: "group",
           },
           data.sender,
           userId
@@ -98,9 +96,10 @@ const createMessage = async (req, res) => {
       socket.io.to(userId).emit(
         "new-message",
         {
-          user,
-          latest: { msg: data.msg, date: data.date },
           _id,
+          user,
+          msg: data.msg,
+          date: data.date,
           type,
         },
         data.sender,

@@ -8,10 +8,14 @@ const contactScheme = mongoose.Schema(
     },
     addedBy: {
       type: mongoose.Schema.Types.ObjectId,
+      index: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    word: {
+      type: String,
     },
   },
   {
