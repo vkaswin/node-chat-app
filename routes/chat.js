@@ -5,6 +5,7 @@ const {
   createGroupChat,
   addToFavourite,
   removeFromFavourite,
+  markAsReadByMsgId,
   markAsRead,
 } = require("../controllers/chat");
 const { verifyToken } = require("../middleware");
@@ -18,6 +19,7 @@ router
   .route("/favourite/:chatId")
   .put(addToFavourite)
   .delete(removeFromFavourite);
-router.put("/markAsRead/:chatId", markAsRead);
+router.put("/markAsRead/all/:chatId", markAsRead);
+router.put("/markAsRead/:chatId/:msgId", markAsReadByMsgId);
 
 module.exports = router;

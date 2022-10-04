@@ -1,7 +1,80 @@
 const { Message, Chat } = require("../models");
-const { getPagination } = require("../utils");
 const socket = require("../socket");
 const mongoose = require("mongoose");
+
+const query = [
+  {
+    $lookup: {
+      from: "messages",
+      localField: "reply",
+      foreignField: "_id",
+      as: "reply",
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "sender",
+      foreignField: "_id",
+      as: "sender",
+      pipeline: [
+        {
+          $project: {
+            id: "$_id",
+            _id: 0,
+            name: 1,
+            avatar: 1,
+          },
+        },
+      ],
+    },
+  },
+  {
+    $addFields: {
+      day: {
+        $dateToString: {
+          date: "$date",
+          format: "%Y-%m-%d",
+        },
+      },
+    },
+  },
+  {
+    $sort: {
+      day: 1,
+      date: 1,
+    },
+  },
+  {
+    $group: {
+      _id: "$day",
+      messages: {
+        $push: {
+          _id: "$_id",
+          chatId: "$chatId",
+          sender: {
+            $first: "$sender",
+          },
+          msg: "$msg",
+          seen: "$seen",
+          date: "$date",
+        },
+      },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      day: "$_id",
+      messages: 1,
+    },
+  },
+  {
+    $sort: {
+      day: 1,
+    },
+  },
+];
 
 // @des create message
 // @route POST /api/message/create/:chatId
@@ -25,8 +98,64 @@ const createMessage = async (req, res) => {
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
-    data = await Message.create({ ...body, chatId, sender: id, seen: [id] });
-    data = await data.populate("reply");
+    let { _id } = await Message.create({
+      ...body,
+      chatId,
+      sender: id,
+      seen: [id],
+    });
+    let [msg] = await Message.aggregate([
+      { $match: { _id } },
+      {
+        $lookup: {
+          from: "messages",
+          localField: "reply",
+          foreignField: "_id",
+          as: "reply",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sender",
+          foreignField: "_id",
+          as: "sender",
+          pipeline: [
+            {
+              $project: {
+                id: "$_id",
+                avatar: 1,
+                name: 1,
+                _id: 0,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          chatId: 1,
+          msg: 1,
+          seen: 1,
+          reply: {
+            $cond: {
+              if: { $gt: [{ $size: "$reply" }, 0] },
+              then: {
+                $first: "$reply",
+              },
+              else: null,
+            },
+          },
+          date: 1,
+          sender: {
+            $first: "$sender",
+          },
+        },
+      },
+    ]);
+
+    data = msg;
 
     await Chat.findByIdAndUpdate(chatId, {
       $push: { messages: data._id },
@@ -55,6 +184,7 @@ const createMessage = async (req, res) => {
           "new-message",
           {
             _id,
+            sender: data.sender,
             msg: data.msg,
             date: data.date,
             type: "group",
@@ -63,7 +193,7 @@ const createMessage = async (req, res) => {
               avatar,
             },
           },
-          data.sender,
+          data.sender.id,
           userId
         );
       });
@@ -98,11 +228,12 @@ const createMessage = async (req, res) => {
         {
           _id,
           user,
+          type,
+          sender: data.sender,
           msg: data.msg,
           date: data.date,
-          type,
         },
-        data.sender,
+        data.sender.id,
         userId
       );
     });
@@ -116,7 +247,7 @@ const getMessagesByChatId = async (req, res) => {
     let {
       user: { id },
       params: { chatId },
-      query: { page = 1, limit = 30, type = null } = {},
+      query: { page = 1, limit = 50 } = {},
     } = req;
 
     id = mongoose.Types.ObjectId(id);
@@ -129,91 +260,138 @@ const getMessagesByChatId = async (req, res) => {
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
-    let total;
-
-    if (type === "new") {
-      total = await Message.find({
-        chatId,
-        seen: { $ne: id },
-      }).countDocuments();
-    } else {
-      total = await Message.find({
-        chatId,
-      }).countDocuments();
-    }
+    let total = await Message.find({
+      chatId,
+    }).countDocuments();
 
     const list = await Message.aggregate([
       {
         $match: {
           chatId,
-          seen: { [type === "new" ? "$ne" : "$eq"]: id },
+          seen: { $eq: id },
         },
       },
       {
         $sort: {
-          date: type === "new" ? 1 : -1,
+          date: -1,
         },
       },
       {
         $skip: (page - 1) * limit,
       },
       { $limit: limit },
+      ...query,
+    ]);
+
+    res
+      .status(200)
+      .send({ message: "Success", data: { list, hasMore: total > limit } });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+// @des get unread messages by chatId
+// @route POST /api/message/unread/:chatId/:msgId
+const getMessagesByMsgId = async (req, res) => {
+  try {
+    let {
+      user: { id },
+      params: { chatId, msgId },
+      query: { limit = 50, latest = 1 } = {},
+    } = req;
+
+    id = mongoose.Types.ObjectId(id);
+    chatId = mongoose.Types.ObjectId(chatId);
+    msgId = mongoose.Types.ObjectId(msgId);
+
+    limit = +limit;
+    latest = +latest;
+
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
+    let message = await Message.findById(msgId);
+
+    if (!message)
+      return res.status(400).send({ message: "Message Id Not Found" });
+
+    const total = await Message.find({
+      chatId,
+      date: { [latest ? "$gt" : "$lt"]: message.date },
+    }).countDocuments();
+
+    const list = await Message.aggregate([
       {
-        $lookup: {
-          from: "messages",
-          localField: "reply",
-          foreignField: "_id",
-          as: "reply",
+        $match: {
+          chatId,
+          date: { [latest ? "$gt" : "$lt"]: message.date },
         },
       },
+      ...(!latest ? [{ $sort: { date: -1 } }] : []),
+      { $limit: limit },
+      ...query,
+    ]);
+
+    res.status(200).send({
+      message: "Success",
+      data: {
+        list,
+        hasMore: total - limit > 0,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+// @des get new messages by chatId
+// @route get /api/new/:chatId
+const getNewMessagesByChatId = async (req, res) => {
+  try {
+    let {
+      user: { id },
+      params: { chatId },
+      query: { limit = 50 } = {},
+    } = req;
+
+    id = mongoose.Types.ObjectId(id);
+    chatId = mongoose.Types.ObjectId(chatId);
+
+    limit = +limit;
+
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
+    const total = await Message.find({
+      chatId,
+      seen: { $ne: id },
+    }).countDocuments();
+
+    const list = await Message.aggregate([
       {
-        $addFields: {
-          day: {
-            $dateToString: {
-              date: "$date",
-              format: "%Y-%m-%d",
-            },
-          },
+        $match: {
+          chatId,
+          seen: { $ne: id },
         },
       },
       {
         $sort: {
-          day: 1,
           date: 1,
         },
       },
-      {
-        $group: {
-          _id: "$day",
-          messages: {
-            $push: {
-              _id: "$_id",
-              chatId: "$chatId",
-              sender: "$sender",
-              msg: "$msg",
-              seen: "$seen",
-              date: "$date",
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          day: "$_id",
-          messages: 1,
-        },
-      },
-      {
-        $sort: {
-          day: 1,
-        },
-      },
+      { $limit: limit },
+      ...query,
     ]);
 
-    const data = getPagination({ list, limit, page, total });
-
-    res.status(200).send({ message: "Success", data });
+    res.status(200).send({
+      message: "Success",
+      data: { list, total, hasMore: total > limit },
+    });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
@@ -223,4 +401,6 @@ const getMessagesByChatId = async (req, res) => {
 module.exports = {
   createMessage,
   getMessagesByChatId,
+  getMessagesByMsgId,
+  getNewMessagesByChatId,
 };
