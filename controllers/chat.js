@@ -3,6 +3,80 @@ const { generateRandomColor } = require("../utils");
 const socket = require("../socket");
 const mongoose = require("mongoose");
 
+const query = [
+  {
+    $lookup: {
+      from: "messages",
+      localField: "reply",
+      foreignField: "_id",
+      as: "reply",
+    },
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "sender",
+      foreignField: "_id",
+      as: "sender",
+      pipeline: [
+        {
+          $project: {
+            id: "$_id",
+            _id: 0,
+            name: 1,
+            avatar: 1,
+          },
+        },
+      ],
+    },
+  },
+  {
+    $addFields: {
+      day: {
+        $dateToString: {
+          date: "$date",
+          format: "%Y-%m-%d",
+        },
+      },
+    },
+  },
+  {
+    $sort: {
+      day: 1,
+      date: 1,
+    },
+  },
+  {
+    $group: {
+      _id: "$day",
+      messages: {
+        $push: {
+          _id: "$_id",
+          chatId: "$chatId",
+          sender: {
+            $first: "$sender",
+          },
+          msg: "$msg",
+          seen: "$seen",
+          date: "$date",
+        },
+      },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      day: "$_id",
+      messages: 1,
+    },
+  },
+  {
+    $sort: {
+      day: 1,
+    },
+  },
+];
+
 // @des Get chat by id
 // @route GET /api/chat/detail/:chatId
 const getChatById = async (req, res) => {
@@ -10,201 +84,264 @@ const getChatById = async (req, res) => {
     let {
       params: { chatId },
       user: { id },
+      query: { limit = 50 },
     } = req;
 
     id = mongoose.Types.ObjectId(id);
     chatId = mongoose.Types.ObjectId(chatId);
 
-    let data;
+    limit = +limit;
+
     let chat = await Chat.findById(chatId);
 
-    if (chat.group) {
-      let [result] = await Chat.aggregate([
-        {
-          $match: { _id: chatId },
-        },
-        {
-          $lookup: {
-            from: "messages",
-            foreignField: "_id",
-            localField: "messages",
-            as: "messages",
-            pipeline: [
-              {
-                $match: {
-                  seen: { $ne: id },
-                },
-              },
-              {
-                $project: {
-                  id: 1,
-                },
-              },
-            ],
-          },
-        },
-        {
-          $lookup: {
-            from: "users",
-            foreignField: "_id",
-            localField: "users",
-            as: "users",
-            pipeline: [
-              {
-                $project: {
-                  _id: 1,
-                  name: 1,
-                  email: 1,
-                  avatar: 1,
-                  status: 1,
-                },
-              },
-            ],
-          },
-        },
-        {
-          $lookup: {
-            from: "users",
-            foreignField: "_id",
-            localField: "group.admin",
-            as: "group.admin",
-          },
-        },
-        {
-          $lookup: {
-            from: "users",
-            foreignField: "_id",
-            localField: "group.createdBy",
-            as: "group.createdBy",
-          },
-        },
-        {
-          $project: {
-            users: 1,
-            name: "$group.name",
-            avatar: "$group.avatar",
-            group: {
-              createdBy: {
-                $first: "$group.createdBy",
-              },
-              admin: 1,
-            },
-            messages: {
-              $cond: {
-                if: { $gt: [{ $size: "$messages" }, 0] },
-                then: true,
-                else: false,
+    let isGroupChat = !!chat.group;
+
+    let [data] = await Chat.aggregate([
+      {
+        $match: { _id: chatId },
+      },
+      {
+        $lookup: {
+          from: "messages",
+          foreignField: "_id",
+          localField: "messages",
+          as: "messages",
+          pipeline: [
+            {
+              $match: {
+                seen: { $ne: id },
               },
             },
-            favourite: {
-              $cond: {
-                if: { $in: [id, "$favourites"] },
-                then: true,
-                else: false,
+          ],
+        },
+      },
+      ...(!isGroupChat
+        ? [
+            {
+              $project: {
+                favourites: 1,
+                messages: 1,
+                users: {
+                  $filter: {
+                    input: "$users",
+                    as: "user",
+                    cond: { $ne: ["$$user", id] },
+                  },
+                },
               },
+            },
+          ]
+        : []),
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "users",
+          as: "users",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                email: 1,
+                avatar: 1,
+                status: 1,
+              },
+            },
+          ],
+        },
+      },
+      ...(isGroupChat
+        ? [
+            {
+              $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "group.admin",
+                as: "group.admin",
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                foreignField: "_id",
+                localField: "group.createdBy",
+                as: "group.createdBy",
+              },
+            },
+          ]
+        : []),
+      {
+        $project: {
+          messages: 1,
+          ...(isGroupChat
+            ? {
+                users: 1,
+                name: "$group.name",
+                avatar: "$group.avatar",
+                group: {
+                  createdBy: {
+                    $first: "$group.createdBy",
+                  },
+                  admin: 1,
+                },
+              }
+            : {
+                user: {
+                  $first: "$users",
+                },
+              }),
+          favourite: {
+            $cond: {
+              if: { $in: [id, "$favourites"] },
+              then: true,
+              else: false,
+            },
+          },
+          messages: {
+            $cond: {
+              if: { $gt: [{ $size: "$messages" }, 0] },
+              then: true,
+              else: false,
             },
           },
         },
+      },
+      ...(!isGroupChat
+        ? [
+            {
+              $project: {
+                chatDetails: {
+                  name: "$user.name",
+                  avatar: "$user.avatar",
+                  status: "$user.status",
+                  userId: "$user._id",
+                  email: "$user.email",
+                  favourite: "$favourite",
+                  messages: "$messages",
+                },
+              },
+            },
+          ]
+        : []),
+    ]);
+
+    if (data.chatDetails.messages) {
+      const totalUnReadMessages = await Message.find({
+        chatId,
+        seen: { $ne: id },
+      }).countDocuments();
+
+      const unReadMessages = await Message.aggregate([
+        {
+          $match: {
+            chatId,
+            seen: { $ne: id },
+          },
+        },
+        {
+          $sort: {
+            date: 1,
+          },
+        },
+        { $limit: limit },
+        ...query,
       ]);
 
-      data = result;
-    } else {
-      let [result] = await Chat.aggregate([
-        {
-          $match: { _id: chatId },
-        },
-        {
-          $lookup: {
-            from: "messages",
-            foreignField: "_id",
-            localField: "messages",
-            as: "messages",
-            pipeline: [
-              {
-                $match: {
-                  seen: { $ne: id },
-                },
-              },
-              {
-                $project: {
-                  seen: 1,
-                },
-              },
-            ],
-          },
-        },
-        {
-          $project: {
-            favourites: 1,
-            messages: 1,
-            user: {
-              $filter: {
-                input: "$users",
-                as: "user",
-                cond: { $ne: ["$$user", id] },
-              },
-            },
-          },
-        },
-        {
-          $lookup: {
-            from: "users",
-            foreignField: "_id",
-            localField: "user",
-            as: "user",
-            pipeline: [
-              {
-                $project: {
-                  _id: 1,
-                  name: 1,
-                  email: 1,
-                  avatar: 1,
-                  status: 1,
-                },
-              },
-            ],
-          },
-        },
-        {
-          $project: {
-            user: {
-              $first: "$user",
-            },
-            messages: {
-              $cond: {
-                if: { $gt: [{ $size: "$messages" }, 0] },
-                then: true,
-                else: false,
-              },
-            },
-            favourite: {
-              $cond: {
-                if: { $in: [id, "$favourites"] },
-                then: true,
-                else: false,
-              },
-            },
-          },
-        },
-        {
-          $project: {
-            name: "$user.name",
-            avatar: "$user.avatar",
-            status: "$user.status",
-            userId: "$user._id",
-            email: "$user.email",
-            favourite: 1,
-            messages: 1,
-          },
-        },
-      ]);
-
-      data = result;
+      data.hasMoreBottom = totalUnReadMessages > limit;
+      data.totalUnReadMsg = totalUnReadMessages;
+      data.unReadMsgList = unReadMessages;
     }
+
+    const totalMessages = await Message.find({
+      chatId,
+      seen: { $eq: id },
+    }).countDocuments();
+
+    const messages = await Message.aggregate([
+      {
+        $match: {
+          chatId,
+          seen: { $eq: id },
+        },
+      },
+      {
+        $sort: {
+          date: -1,
+        },
+      },
+      { $limit: limit },
+      ...query,
+      //   {
+      //     $project: {
+      //       messages: 1,
+      //     },
+      //   },
+    ]);
+
+    data.hasMoreTop = totalMessages > limit;
+    data.msgList = messages;
+    delete data.chatDetails.messages;
 
     res.status(200).send({
       message: "Success",
       data,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
+// @des get chat by msgId
+// @route get /api/chat/messages/:chatId/:msgId
+const getChatMessagesByMsgId = async (req, res) => {
+  try {
+    let {
+      user: { id },
+      params: { chatId, msgId },
+      query: { limit = 50, latest = 1 } = {},
+    } = req;
+
+    id = mongoose.Types.ObjectId(id);
+    chatId = mongoose.Types.ObjectId(chatId);
+    msgId = mongoose.Types.ObjectId(msgId);
+
+    limit = +limit;
+    latest = +latest;
+
+    const chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
+    let message = await Message.findById(msgId);
+
+    if (!message)
+      return res.status(400).send({ message: "Message Id Not Found" });
+
+    const total = await Message.find({
+      chatId,
+      date: { [latest ? "$gt" : "$lt"]: message.date },
+    }).countDocuments();
+
+    const list = await Message.aggregate([
+      {
+        $match: {
+          chatId,
+          date: { [latest ? "$gt" : "$lt"]: message.date },
+        },
+      },
+      ...(!latest ? [{ $sort: { date: -1 } }] : []),
+      { $limit: limit },
+      ...query,
+    ]);
+
+    res.status(200).send({
+      message: "Success",
+      data: {
+        list,
+        hasMore: total - limit > 0,
+      },
     });
   } catch (error) {
     console.log(error);
@@ -552,6 +689,7 @@ const markAsRead = async (req, res) => {
 
 module.exports = {
   getChatsByType,
+  getChatMessagesByMsgId,
   getChatById,
   createGroupChat,
   addToFavourite,
