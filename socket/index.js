@@ -92,6 +92,11 @@ const socket = {
 
     this.io.on("connection", socketHandler);
   },
+  getRooms() {
+    if (!this.io) return;
+    let rooms = this.io.sockets.adapter.rooms;
+    return rooms.size > 0 ? rooms : null;
+  },
 };
 
 module.exports = socket;

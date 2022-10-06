@@ -25,6 +25,8 @@ const query = [
             _id: 0,
             name: 1,
             avatar: 1,
+            status: 1,
+            email: 1,
           },
         },
       ],
@@ -173,57 +175,47 @@ const getChatById = async (req, res) => {
         : []),
       {
         $project: {
-          messages: 1,
-          ...(isGroupChat
-            ? {
-                users: 1,
-                name: "$group.name",
-                avatar: "$group.avatar",
-                group: {
-                  createdBy: {
-                    $first: "$group.createdBy",
+          chatDetails: {
+            ...(isGroupChat
+              ? {
+                  users: 1,
+                  name: "$group.name",
+                  avatar: "$group.avatar",
+                  group: {
+                    createdBy: {
+                      $first: "$group.createdBy",
+                    },
+                    admin: "$group.admin",
                   },
-                  admin: 1,
-                },
-              }
-            : {
-                user: {
-                  $first: "$users",
-                },
-              }),
-          favourite: {
-            $cond: {
-              if: { $in: [id, "$favourites"] },
-              then: true,
-              else: false,
+                }
+              : {
+                  name: {
+                    $first: "$users.name",
+                  },
+                  avatar: {
+                    $first: "$users.avatar",
+                  },
+                  status: { $first: "$users.status" },
+                  userId: { $first: "$users._id" },
+                  email: { $first: "$users.email" },
+                }),
+            favourite: {
+              $cond: {
+                if: { $in: [id, "$favourites"] },
+                then: true,
+                else: false,
+              },
             },
-          },
-          messages: {
-            $cond: {
-              if: { $gt: [{ $size: "$messages" }, 0] },
-              then: true,
-              else: false,
+            messages: {
+              $cond: {
+                if: { $gt: [{ $size: "$messages" }, 0] },
+                then: true,
+                else: false,
+              },
             },
           },
         },
       },
-      ...(!isGroupChat
-        ? [
-            {
-              $project: {
-                chatDetails: {
-                  name: "$user.name",
-                  avatar: "$user.avatar",
-                  status: "$user.status",
-                  userId: "$user._id",
-                  email: "$user.email",
-                  favourite: "$favourite",
-                  messages: "$messages",
-                },
-              },
-            },
-          ]
-        : []),
     ]);
 
     if (data.chatDetails.messages) {
@@ -272,11 +264,6 @@ const getChatById = async (req, res) => {
       },
       { $limit: limit },
       ...query,
-      //   {
-      //     $project: {
-      //       messages: 1,
-      //     },
-      //   },
     ]);
 
     data.hasMoreTop = totalMessages > limit;
