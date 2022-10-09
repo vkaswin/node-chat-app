@@ -3,82 +3,6 @@ const { generateRandomColor } = require("../utils");
 const socket = require("../socket");
 const mongoose = require("mongoose");
 
-const query = [
-  {
-    $lookup: {
-      from: "messages",
-      localField: "reply",
-      foreignField: "_id",
-      as: "reply",
-    },
-  },
-  {
-    $lookup: {
-      from: "users",
-      localField: "sender",
-      foreignField: "_id",
-      as: "sender",
-      pipeline: [
-        {
-          $project: {
-            id: "$_id",
-            _id: 0,
-            name: 1,
-            avatar: 1,
-            status: 1,
-            email: 1,
-          },
-        },
-      ],
-    },
-  },
-  {
-    $addFields: {
-      day: {
-        $dateToString: {
-          date: "$date",
-          format: "%Y-%m-%d",
-        },
-      },
-    },
-  },
-  {
-    $sort: {
-      day: 1,
-      date: 1,
-    },
-  },
-  {
-    $group: {
-      _id: "$day",
-      messages: {
-        $push: {
-          _id: "$_id",
-          chatId: "$chatId",
-          sender: {
-            $first: "$sender",
-          },
-          msg: "$msg",
-          seen: "$seen",
-          date: "$date",
-        },
-      },
-    },
-  },
-  {
-    $project: {
-      _id: 0,
-      day: "$_id",
-      messages: 1,
-    },
-  },
-  {
-    $sort: {
-      day: 1,
-    },
-  },
-];
-
 // @des Get chat by id
 // @route GET /api/chat/detail/:chatId
 const getChatById = async (req, res) => {
@@ -237,7 +161,7 @@ const getChatById = async (req, res) => {
           },
         },
         { $limit: limit },
-        ...query,
+        ...Message.schema.statics.query,
       ]);
 
       data.hasMoreBottom = totalUnReadMessages > limit;
@@ -263,7 +187,7 @@ const getChatById = async (req, res) => {
         },
       },
       { $limit: limit },
-      ...query,
+      ...Message.schema.statics.query,
     ]);
 
     data.hasMoreTop = totalMessages > limit;
@@ -320,7 +244,7 @@ const getChatMessagesByMsgId = async (req, res) => {
       },
       ...(!latest ? [{ $sort: { date: -1 } }] : []),
       { $limit: limit },
-      ...query,
+      ...Message.schema.statics.query,
     ]);
 
     res.status(200).send({

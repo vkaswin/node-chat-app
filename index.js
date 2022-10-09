@@ -19,6 +19,7 @@ app
   .use(express.json())
   .use(express.urlencoded({ extended: false }))
   .use("*/images", express.static("public/images"))
+  .use("*/reaction", express.static("public/reaction"))
   .use(routes);
 
 server.listen(port, () => {
