@@ -27,7 +27,7 @@ const messageScheme = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
     },
-    reaction: [
+    reactions: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Reaction",
@@ -39,6 +39,61 @@ const messageScheme = mongoose.Schema(
 );
 
 messageScheme.statics.query = [
+  {
+    $lookup: {
+      from: "reactions",
+      localField: "reactions",
+      foreignField: "_id",
+      as: "reactions",
+      pipeline: [
+        {
+          $lookup: {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "user",
+            pipeline: [
+              {
+                $project: {
+                  id: "$_id",
+                  _id: 0,
+                  name: 1,
+                  email: 1,
+                  avatar: 1,
+                  status: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            reaction: 1,
+            msgId: 1,
+            user: { $first: "$user" },
+          },
+        },
+        {
+          $group: {
+            _id: "$reaction",
+            total: { $sum: 1 },
+            users: {
+              $push: { $mergeObjects: ["$user", { reactionId: "$_id" }] },
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            users: 1,
+            total: 1,
+            reaction: "$_id",
+          },
+        },
+      ],
+    },
+  },
   {
     $lookup: {
       from: "messages",
@@ -96,6 +151,7 @@ messageScheme.statics.query = [
           msg: "$msg",
           seen: "$seen",
           date: "$date",
+          reactions: "$reactions",
         },
       },
     },

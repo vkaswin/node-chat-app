@@ -102,7 +102,7 @@ const getChatById = async (req, res) => {
           chatDetails: {
             ...(isGroupChat
               ? {
-                  users: 1,
+                  users: "$users",
                   name: "$group.name",
                   avatar: "$group.avatar",
                   group: {

@@ -3,6 +3,7 @@ const Chat = require("./chat");
 const Message = require("./message");
 const Contact = require("./contact");
 const Call = require("./call");
+const Reaction = require("./reaction");
 
 module.exports = {
   User,
@@ -10,4 +11,5 @@ module.exports = {
   Message,
   Contact,
   Call,
+  Reaction,
 };
