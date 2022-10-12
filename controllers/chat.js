@@ -67,11 +67,12 @@ const getChatById = async (req, res) => {
           pipeline: [
             {
               $project: {
-                _id: 1,
+                id: "$_id",
+                _id: 0,
                 name: 1,
-                email: 1,
                 avatar: 1,
                 status: 1,
+                email: 1,
               },
             },
           ],
@@ -85,6 +86,18 @@ const getChatById = async (req, res) => {
                 foreignField: "_id",
                 localField: "group.admin",
                 as: "group.admin",
+                pipeline: [
+                  {
+                    $project: {
+                      id: "$_id",
+                      _id: 0,
+                      name: 1,
+                      avatar: 1,
+                      status: 1,
+                      email: 1,
+                    },
+                  },
+                ],
               },
             },
             {
@@ -93,6 +106,18 @@ const getChatById = async (req, res) => {
                 foreignField: "_id",
                 localField: "group.createdBy",
                 as: "group.createdBy",
+                pipeline: [
+                  {
+                    $project: {
+                      id: "$_id",
+                      _id: 0,
+                      name: 1,
+                      avatar: 1,
+                      status: 1,
+                      email: 1,
+                    },
+                  },
+                ],
               },
             },
           ]

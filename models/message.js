@@ -40,6 +40,17 @@ const messageScheme = mongoose.Schema(
 
 messageScheme.statics.query = [
   {
+    $project: {
+      totalReactions: { $size: "$reactions" },
+      chatId: 1,
+      sender: 1,
+      msg: 1,
+      date: 1,
+      seen: 1,
+      reactions: 1,
+    },
+  },
+  {
     $lookup: {
       from: "reactions",
       localField: "reactions",
@@ -152,6 +163,7 @@ messageScheme.statics.query = [
           seen: "$seen",
           date: "$date",
           reactions: "$reactions",
+          totalReactions: "$totalReactions",
         },
       },
     },
