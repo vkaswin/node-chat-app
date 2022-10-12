@@ -97,6 +97,13 @@ const socket = {
     let rooms = this.io.sockets.adapter.rooms;
     return rooms.size > 0 ? rooms : null;
   },
+  getRoomById(roomId) {
+    if (!this.io) return;
+    let rooms = this.io.socket.adapter.rooms;
+    let room = rooms.get(roomId);
+    if (!room || room.size === 0) return;
+    return room;
+  },
 };
 
 module.exports = socket;

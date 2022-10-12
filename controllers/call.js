@@ -2,13 +2,12 @@ const { Call, Chat } = require("../models");
 const socket = require("../socket");
 
 const initiateCall = async (req, res) => {
+  const {
+    user: { id },
+    params: { chatId },
+    body: { date, type, offer },
+  } = req;
   try {
-    const {
-      user: { id },
-      params: { chatId },
-      body: { date, type, offer },
-    } = req;
-
     if (!date || !type || !offer)
       return res.status(400).send({ message: "Please fill all fields" });
 

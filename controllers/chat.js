@@ -528,23 +528,25 @@ const removeFromFavourite = async (req, res) => {
 };
 
 const markAsReadByMsgId = async (req, res) => {
+  const {
+    user: { id },
+    params: { chatId, msgId },
+  } = req;
+  let chat;
   try {
-    const {
-      user: { id },
-      params: { chatId, msgId },
-    } = req;
-
-    const chat = await Chat.findById(chatId);
+    chat = await Chat.findById(chatId);
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
     await Message.findByIdAndUpdate(msgId, { $push: { seen: id } });
 
-    socket.io.to(chatId).emit("seen", { msgId, userId: id });
     return res.status(200).send({ message: "Success" });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
+  } finally {
+    if (!chat) return;
+    socket.io.to(chatId).emit("seen", { msgId, userId: id });
   }
 };
 
@@ -553,9 +555,12 @@ const markAsRead = async (req, res) => {
     params: { chatId },
     user: { id },
   } = req;
-  let msgId;
+  let chat, msgId;
 
   try {
+    chat = await Chat.findById(chatId);
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
     msgId = await Message.aggregate([
       {
         $match: {
@@ -570,6 +575,8 @@ const markAsRead = async (req, res) => {
         },
       },
     ]);
+
+    if (msgId.length === 0) return res.status(200).send({ message: "Success" });
 
     await Message.updateMany(
       {
@@ -588,13 +595,8 @@ const markAsRead = async (req, res) => {
     console.log(error);
     res.status(400).send({ message: "Error" });
   } finally {
-    let rooms = socket.io.sockets.adapter.rooms;
-
-    if (rooms.has(chatId) && rooms.get(chatId).size > 1) {
-      rooms.get(chatId).forEach((socketId) => {
-        socket.io.to(socketId).emit("seen", { msgId, userId: id });
-      });
-    }
+    if (!chat || msgId.length === 0) return;
+    socket.io.to(chatId).emit("seen", { msgId, userId: id });
   }
 };
 
