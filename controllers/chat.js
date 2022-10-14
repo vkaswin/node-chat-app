@@ -47,7 +47,8 @@ const getChatById = async (req, res) => {
               $project: {
                 favourites: 1,
                 messages: 1,
-                users: {
+                users: 1,
+                user: {
                   $filter: {
                     input: "$users",
                     as: "user",
@@ -138,6 +139,7 @@ const getChatById = async (req, res) => {
                   },
                 }
               : {
+                  users: "$users",
                   name: {
                     $first: "$users.name",
                   },
@@ -145,7 +147,7 @@ const getChatById = async (req, res) => {
                     $first: "$users.avatar",
                   },
                   status: { $first: "$users.status" },
-                  userId: { $first: "$users._id" },
+                  userId: { $first: "$users.id" },
                   email: { $first: "$users.email" },
                 }),
             favourite: {
