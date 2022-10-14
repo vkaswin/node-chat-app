@@ -40,6 +40,26 @@ const messageScheme = mongoose.Schema(
 
 messageScheme.statics.query = [
   {
+    $lookup: {
+      from: "users",
+      localField: "seen",
+      foreignField: "_id",
+      as: "seen",
+      pipeline: [
+        {
+          $project: {
+            id: "$_id",
+            _id: 0,
+            name: 1,
+            email: 1,
+            avatar: 1,
+            status: 1,
+          },
+        },
+      ],
+    },
+  },
+  {
     $project: {
       totalReactions: { $size: "$reactions" },
       chatId: 1,
