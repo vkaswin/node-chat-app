@@ -10,7 +10,8 @@ const verifyToken = async (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    console.log(error);
+    if (error.message === "jwt expired")
+      return res.status(401).send({ message: "Unauthorized" });
     res.status(400).send({ message: "Error" });
   }
 };
@@ -29,7 +30,8 @@ const verifyTokenSocket = async (socket, next) => {
     socket.user = decoded;
     next();
   } catch (error) {
-    console.log(error);
+    if (error.message === "jwt expired")
+      return res.status(401).send({ message: "Unauthorized" });
     res.status(400).send({ message: "Error" });
   }
 };

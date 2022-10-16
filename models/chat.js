@@ -2,12 +2,13 @@ const mongoose = require("mongoose");
 
 const chatSchema = mongoose.Schema(
   {
-    users: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    users: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+        },
+      ],
+    },
     group: {
       type: {
         name: { type: String },
@@ -20,25 +21,18 @@ const chatSchema = mongoose.Schema(
       default: null,
       _id: false,
     },
-    favourites: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: [],
-      },
-    ],
+    favourites: {
+      type: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+        },
+      ],
+      default: [],
+    },
     latest: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
       default: null,
     },
-    messages: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        default: [],
-        ref: "Message",
-      },
-    ],
   },
   {
     timestamps: true,

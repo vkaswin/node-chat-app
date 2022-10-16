@@ -4,7 +4,6 @@ const contactScheme = mongoose.Schema(
   {
     chatId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Chat",
     },
     addedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -12,7 +11,6 @@ const contactScheme = mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
     },
     word: {
       type: String,

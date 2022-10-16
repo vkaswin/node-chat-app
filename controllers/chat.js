@@ -26,96 +26,23 @@ const getChatById = async (req, res) => {
       {
         $match: { _id: chatId },
       },
-      {
-        $lookup: {
-          from: "messages",
-          foreignField: "_id",
-          localField: "messages",
-          as: "messages",
-          pipeline: [
-            {
-              $match: {
-                seen: { $ne: id },
-              },
-            },
-          ],
-        },
-      },
       ...(!isGroupChat
         ? [
             {
-              $project: {
-                favourites: 1,
-                messages: 1,
-                users: 1,
-                user: {
-                  $filter: {
-                    input: "$users",
-                    as: "user",
-                    cond: { $ne: ["$$user", id] },
-                  },
-                },
-              },
-            },
-          ]
-        : []),
-      {
-        $lookup: {
-          from: "users",
-          foreignField: "_id",
-          localField: "users",
-          as: "users",
-          pipeline: [
-            {
-              $project: {
-                id: "$_id",
-                _id: 0,
-                name: 1,
-                avatar: 1,
-                status: 1,
-                email: 1,
-              },
-            },
-          ],
-        },
-      },
-      ...(isGroupChat
-        ? [
-            {
               $lookup: {
                 from: "users",
                 foreignField: "_id",
-                localField: "group.admin",
-                as: "group.admin",
+                localField: "users",
+                as: "user",
                 pipeline: [
+                  { $match: { _id: { $ne: id } } },
                   {
                     $project: {
-                      id: "$_id",
-                      _id: 0,
+                      userId: "$_id",
                       name: 1,
-                      avatar: 1,
-                      status: 1,
                       email: 1,
-                    },
-                  },
-                ],
-              },
-            },
-            {
-              $lookup: {
-                from: "users",
-                foreignField: "_id",
-                localField: "group.createdBy",
-                as: "group.createdBy",
-                pipeline: [
-                  {
-                    $project: {
-                      id: "$_id",
-                      _id: 0,
-                      name: 1,
-                      avatar: 1,
                       status: 1,
-                      email: 1,
+                      avatar: 1,
                     },
                   },
                 ],
@@ -128,38 +55,25 @@ const getChatById = async (req, res) => {
           chatDetails: {
             ...(isGroupChat
               ? {
-                  users: "$users",
                   name: "$group.name",
                   avatar: "$group.avatar",
-                  group: {
-                    createdBy: {
-                      $first: "$group.createdBy",
-                    },
-                    admin: "$group.admin",
-                  },
+                  totalMembers: { $size: "$users" },
                 }
               : {
-                  users: "$users",
                   name: {
-                    $first: "$users.name",
+                    $first: "$user.name",
                   },
                   avatar: {
-                    $first: "$users.avatar",
+                    $first: "$user.avatar",
                   },
-                  status: { $first: "$users.status" },
-                  userId: { $first: "$users.id" },
-                  email: { $first: "$users.email" },
+                  status: { $first: "$user.status" },
+                  userId: { $first: "$user.id" },
+                  email: { $first: "$user.email" },
+                  userId: { $first: "$user._id" },
                 }),
             favourite: {
               $cond: {
                 if: { $in: [id, "$favourites"] },
-                then: true,
-                else: false,
-              },
-            },
-            messages: {
-              $cond: {
-                if: { $gt: [{ $size: "$messages" }, 0] },
                 then: true,
                 else: false,
               },
@@ -169,17 +83,22 @@ const getChatById = async (req, res) => {
       },
     ]);
 
-    if (data.chatDetails.messages) {
+    const newMessages = await Message.findOne({
+      chatId,
+      "seen.user": { $ne: id },
+    });
+
+    if (newMessages) {
       const totalUnReadMessages = await Message.find({
         chatId,
-        seen: { $ne: id },
+        "seen.user": { $ne: id },
       }).countDocuments();
 
       const unReadMessages = await Message.aggregate([
         {
           $match: {
             chatId,
-            seen: { $ne: id },
+            "seen.user": { $ne: id },
           },
         },
         {
@@ -188,7 +107,7 @@ const getChatById = async (req, res) => {
           },
         },
         { $limit: limit },
-        ...Message.schema.statics.query,
+        ...Message.schema.statics.query(chat.users.length),
       ]);
 
       data.hasMoreBottom = totalUnReadMessages > limit;
@@ -198,14 +117,14 @@ const getChatById = async (req, res) => {
 
     const totalMessages = await Message.find({
       chatId,
-      seen: { $eq: id },
+      "seen.user": { $eq: id },
     }).countDocuments();
 
     const messages = await Message.aggregate([
       {
         $match: {
           chatId,
-          seen: { $eq: id },
+          "seen.user": { $eq: id },
         },
       },
       {
@@ -214,7 +133,7 @@ const getChatById = async (req, res) => {
         },
       },
       { $limit: limit },
-      ...Message.schema.statics.query,
+      ...Message.schema.statics.query(chat.users.length),
     ]);
 
     data.hasMoreTop = totalMessages > limit;
@@ -271,7 +190,7 @@ const getChatMessagesByMsgId = async (req, res) => {
       },
       ...(!latest ? [{ $sort: { date: -1 } }] : []),
       { $limit: limit },
-      ...Message.schema.statics.query,
+      ...Message.schema.statics.query(chat.users.length),
     ]);
 
     res.status(200).send({
@@ -316,26 +235,6 @@ const getChatsByType = async (req, res) => {
         {
           $lookup: {
             from: "messages",
-            foreignField: "_id",
-            localField: "messages",
-            as: "messages",
-            pipeline: [
-              {
-                $match: {
-                  seen: { $ne: id },
-                },
-              },
-              {
-                $project: {
-                  seen: 1,
-                },
-              },
-            ],
-          },
-        },
-        {
-          $lookup: {
-            from: "messages",
             localField: "latest",
             foreignField: "_id",
             as: "latest",
@@ -360,13 +259,6 @@ const getChatsByType = async (req, res) => {
                 input: "$users",
                 as: "user",
                 cond: { $ne: ["$$user", id] },
-              },
-            },
-            messages: {
-              $filter: {
-                input: "$messages",
-                as: "message",
-                cond: { $ne: ["$$message.seen", id] },
               },
             },
           },
@@ -399,9 +291,6 @@ const getChatsByType = async (req, res) => {
             user: {
               $first: "$user",
             },
-            count: {
-              $size: "$messages",
-            },
           },
         },
       ]);
@@ -412,26 +301,6 @@ const getChatsByType = async (req, res) => {
             users: id,
             latest: { $ne: null },
             group: { $ne: null },
-          },
-        },
-        {
-          $lookup: {
-            from: "messages",
-            foreignField: "_id",
-            localField: "messages",
-            as: "messages",
-            pipeline: [
-              {
-                $match: {
-                  seen: { $ne: id },
-                },
-              },
-              {
-                $project: {
-                  seen: 1,
-                },
-              },
-            ],
           },
         },
         {
@@ -457,7 +326,6 @@ const getChatsByType = async (req, res) => {
               $first: "$latest",
             },
             group: 1,
-            messages: 1,
           },
         },
         {
@@ -468,14 +336,19 @@ const getChatsByType = async (req, res) => {
             },
             msg: "$latest.msg",
             date: "$latest.date",
-            count: {
-              $size: "$messages",
-            },
           },
         },
       ]);
     } else {
       req.status(400).send({ message: "Invalid chat type" });
+    }
+
+    for (let i = 0; i < data.length; i++) {
+      let chatId = data[i]._id;
+      data[i].count = await Message.find({
+        chatId,
+        "seen.user": { $ne: id },
+      }).countDocuments();
     }
 
     res.status(200).send({ message: "Success", data });
@@ -565,7 +438,9 @@ const markAsReadByMsgId = async (req, res) => {
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
-    await Message.findByIdAndUpdate(msgId, { $push: { seen: id } });
+    await Message.findByIdAndUpdate(msgId, {
+      $push: { seen: { user: id, date: new Date().toISOString() } },
+    });
 
     return res.status(200).send({ message: "Success" });
   } catch (error) {
@@ -583,6 +458,8 @@ const markAsRead = async (req, res) => {
     user: { id },
   } = req;
   let chat, msgId;
+
+  return res.status(200).send({ message: "Success" });
 
   try {
     chat = await Chat.findById(chatId);
