@@ -223,10 +223,75 @@ const getReactionsByType = async (req, res) => {
   }
 };
 
+const getSeenByMsgId = async (req, res) => {
+  let {
+    params: { msgId },
+    query: { limit = 25, page = 1 },
+    user: { id },
+  } = req;
+
+  limit = +limit;
+  page = +page;
+
+  try {
+    let data = await Message.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(msgId) } },
+      {
+        $unwind: "$seen",
+      },
+      {
+        $skip: (page - 1) * limit,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "seen.user",
+          foreignField: "_id",
+          as: "user",
+          pipeline: [
+            {
+              $project: {
+                _id: 0,
+                id: "$_id",
+                name: 1,
+                email: 1,
+                avatar: 1,
+                status: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          id: { $first: "$user.id" },
+          name: { $first: "$user.name" },
+          email: { $first: "$user.email" },
+          avatar: { $first: "$user.avatar" },
+          status: { $first: "$user.status" },
+          date: 1,
+        },
+      },
+      {
+        $match: { id: { $ne: mongoose.Types.ObjectId(id) } },
+      },
+    ]);
+
+    res.status(200).send({ message: "Success", data });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
 module.exports = {
   createMessage,
   handleReaction,
   getReactions,
   getReactionsByType,
-  //   getSeen,
+  getSeenByMsgId,
 };
