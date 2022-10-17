@@ -459,8 +459,6 @@ const markAsRead = async (req, res) => {
   } = req;
   let chat, msgId;
 
-  return res.status(200).send({ message: "Success" });
-
   try {
     chat = await Chat.findById(chatId);
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
@@ -469,7 +467,11 @@ const markAsRead = async (req, res) => {
       {
         $match: {
           chatId: mongoose.Types.ObjectId(chatId),
-          seen: { $ne: mongoose.Types.ObjectId(id) },
+          seen: {
+            $elemMatch: {
+              user: { $ne: mongoose.Types.ObjectId(id) },
+            },
+          },
         },
       },
       {
@@ -485,11 +487,14 @@ const markAsRead = async (req, res) => {
     await Message.updateMany(
       {
         chatId,
-        seen: { $ne: id },
+        seen: { user: { $elemMatch: { $ne: id } } },
       },
       {
         $push: {
-          seen: id,
+          seen: {
+            user: id,
+            date: new Date().toISOString(),
+          },
         },
       }
     );
