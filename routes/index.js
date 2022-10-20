@@ -14,6 +14,9 @@ router
   .use("/api/chat", chatRoutes)
   .use("/api/message", messageRoutes)
   .use("/api/contact", contactRoutes)
-  .use("/api/call", callRoutes);
+  .use("/api/call", callRoutes)
+  .use("/api/healthcheck", (req, res) => {
+    res.status(200).send({ message: "Successs" });
+  });
 
 module.exports = router;

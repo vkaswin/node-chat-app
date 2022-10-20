@@ -1,5 +1,6 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
+const { fileUpload } = require("../storage");
 const domain =
   process.env.NODE_ENV !== "production"
     ? "http://localhost:8000"
@@ -36,9 +37,7 @@ const getMetaData = async (req, res) => {
 
 const uploadFile = async (req, res) => {
   try {
-    const data = req.files.map(({ originalname, path, type }) => {
-      return { fileName: originalname, url: `${domain}/${path}`, type };
-    });
+    const data = await fileUpload(req.files);
     res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error);
