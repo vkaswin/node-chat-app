@@ -13,6 +13,18 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
+const folder = {
+  "image/png": "image",
+  "image/gif": "image",
+  "image/jpeg": "image",
+  "image/webp": "image",
+  "video/mpeg": "video",
+  "video/mp4": "video",
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "docs",
+};
 
 const fileUpload = async (files) => {
   let urls = [];
@@ -21,12 +33,14 @@ const fileUpload = async (files) => {
       let metadata = {
         contentType: mimetype,
       };
+      let folderName = folder[mimetype] || "other";
+      originalname = `${folderName}/${originalname}`;
       let storageRef = ref(storage, originalname);
       let {
-        metadata: { bucket, fullPath },
+        metadata: { bucket, name },
       } = await uploadBytes(storageRef, buffer, metadata);
       urls.push(
-        `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${fullPath}?alt=media`
+        `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${folderName}%2F${name}?alt=media`
       );
     }
     return urls;

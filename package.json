@@ -19,7 +19,6 @@
     },
     "homepage": "https://github.com/vkaswin/node-chat-app#readme",
     "dependencies": {
-        "@google-cloud/storage": "^6.5.2",
         "axios": "^0.27.2",
         "bcryptjs": "^2.4.3",
         "cheerio": "^1.0.0-rc.12",
