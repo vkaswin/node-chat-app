@@ -67,6 +67,15 @@ messageScheme.statics.query = function (totalUsers) {
         localField: "reply",
         foreignField: "_id",
         as: "reply",
+        pipeline: [
+          {
+            $project: {
+              id: "$_id",
+              _id: 0,
+              msg: 1,
+            },
+          },
+        ],
       },
     },
     {
@@ -116,6 +125,7 @@ messageScheme.statics.query = function (totalUsers) {
             sender: {
               $first: "$sender",
             },
+            reply: { $first: "$reply" },
             msg: "$msg",
             seen: "$seen",
             date: "$date",

@@ -23,7 +23,12 @@ const createMessage = async (req, res) => {
       ...body,
       chatId,
       sender: id,
-      seen: [id],
+      seen: [
+        {
+          user: id,
+          date: body.date,
+        },
+      ],
     });
 
     await Chat.findByIdAndUpdate(chatId, {

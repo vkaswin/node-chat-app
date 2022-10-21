@@ -493,7 +493,7 @@ const markAsRead = async (req, res) => {
     await Message.updateMany(
       {
         chatId,
-        seen: { user: { $elemMatch: { $ne: id } } },
+        seen: { $elemMatch: { user: { $ne: id } } },
       },
       {
         $push: {
