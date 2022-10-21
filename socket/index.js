@@ -45,27 +45,32 @@ const socketHandler = async (socket) => {
     socket.to(chatId).emit("receive-answer", answer);
   });
 
-  socket.on("start-typing", (chatId, user) => {
+  socket.on("start-typing", (chatId, user, name) => {
     let rooms = socket.adapter.rooms;
+    if (typeof user === "string") console.log(rooms.has(user), rooms);
+    if (typeof user === "string" && rooms.has(user))
+      return socket.to(user).emit("start-typing", chatId, name);
 
-    if (!Array.isArray(user) && rooms.has(user.id))
-      return socket.to(user.id).emit("start-typing", chatId, user.name);
+    if (!Array.isArray(user)) return;
 
-    user.forEach(({ id, name }) => {
+    user.forEach((id) => {
       if (!rooms.has(id)) return;
       socket.to(id).emit("start-typing", chatId, name);
     });
   });
 
-  socket.on("end-typing", (chatId, user) => {
+  socket.on("end-typing", (chatId, user, name) => {
     let rooms = socket.adapter.rooms;
+    if (typeof user === "string") console.log(rooms.has(user));
 
-    if (!Array.isArray(user) && rooms.has(user.id))
-      return socket.to(user.id).emit("end-typing", chatId);
+    if (typeof user === "string" && rooms.has(user))
+      return socket.to(user).emit("end-typing", chatId, name);
 
-    user.forEach(({ id }) => {
+    if (!Array.isArray(user)) return;
+
+    user.forEach((id) => {
       if (!rooms.has(id)) return;
-      socket.to(id).emit("end-typing", chatId);
+      socket.to(id).emit("end-typing", chatId, name);
     });
   });
 
