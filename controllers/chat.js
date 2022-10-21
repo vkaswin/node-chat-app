@@ -59,6 +59,7 @@ const getChatById = async (req, res) => {
                   name: "$group.name",
                   avatar: "$group.avatar",
                   colorCode: "$group.colorCode",
+                  users: "$users",
                   totalMembers: { $size: "$users" },
                 }
               : {

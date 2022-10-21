@@ -46,19 +46,25 @@ const socketHandler = async (socket) => {
   });
 
   socket.on("start-typing", (chatId, user) => {
-    if (!Array.isArray(user))
+    let rooms = socket.adapter.rooms;
+
+    if (!Array.isArray(user) && rooms.has(user.id))
       return socket.to(user.id).emit("start-typing", chatId, user.name);
 
     user.forEach(({ id, name }) => {
+      if (!rooms.has(id)) return;
       socket.to(id).emit("start-typing", chatId, name);
     });
   });
 
   socket.on("end-typing", (chatId, user) => {
-    if (!Array.isArray(user))
+    let rooms = socket.adapter.rooms;
+
+    if (!Array.isArray(user) && rooms.has(user.id))
       return socket.to(user.id).emit("end-typing", chatId);
 
     user.forEach(({ id }) => {
+      if (!rooms.has(id)) return;
       socket.to(id).emit("end-typing", chatId);
     });
   });

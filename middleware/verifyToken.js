@@ -23,7 +23,7 @@ const verifyTokenSocket = async (socket, next) => {
     },
   } = socket;
 
-  if (!token) return next();
+  if (!token) return;
 
   try {
     let decoded = await jwt.verify(token.split(`"`)[1], process.env.JWT_SECRET);
