@@ -43,6 +43,7 @@ const getChatById = async (req, res) => {
                       email: 1,
                       status: 1,
                       avatar: 1,
+                      colorCode: 1,
                     },
                   },
                 ],
@@ -57,6 +58,7 @@ const getChatById = async (req, res) => {
               ? {
                   name: "$group.name",
                   avatar: "$group.avatar",
+                  colorCode: "$group.colorCode",
                   totalMembers: { $size: "$users" },
                 }
               : {
@@ -66,6 +68,7 @@ const getChatById = async (req, res) => {
                   avatar: {
                     $first: "$user.avatar",
                   },
+                  colorCode: { $first: "$user.colorCode" },
                   status: { $first: "$user.status" },
                   userId: { $first: "$user.id" },
                   email: { $first: "$user.email" },
@@ -277,6 +280,7 @@ const getChatsByType = async (req, res) => {
                   name: 1,
                   email: 1,
                   avatar: 1,
+                  colorCode: 1,
                   status: 1,
                 },
               },
@@ -333,6 +337,7 @@ const getChatsByType = async (req, res) => {
             group: {
               name: "$group.name",
               avatar: "$group.avatar",
+              colorCode: "$group.colorCode",
             },
             msg: "$latest.msg",
             date: "$latest.date",
@@ -369,7 +374,7 @@ const createGroupChat = async (req, res) => {
 
     body.group.createdBy = id;
     body.group.admin = [id];
-    body.group.avatar = generateRandomColor();
+    body.group.colorCode = generateRandomColor();
 
     let data = await Chat.create(body);
     res.status(200).send({ message: "Success", data });

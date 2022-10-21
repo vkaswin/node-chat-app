@@ -82,6 +82,7 @@ messageScheme.statics.query = function (totalUsers) {
               _id: 0,
               name: 1,
               avatar: 1,
+              colorCode: 1,
               status: 1,
               email: 1,
             },
@@ -164,59 +165,3 @@ messageScheme.statics.query = function (totalUsers) {
 };
 
 module.exports = mongoose.model("Message", messageScheme);
-
-// {
-//   $lookup: {
-//     from: "reactions",
-//     localField: "reactions",
-//     foreignField: "_id",
-//     as: "reactions",
-//     pipeline: [
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "user",
-//           foreignField: "_id",
-//           as: "user",
-//           pipeline: [
-//             {
-//               $project: {
-//                 id: "$_id",
-//                 _id: 0,
-//                 name: 1,
-//                 email: 1,
-//                 avatar: 1,
-//                 status: 1,
-//               },
-//             },
-//           ],
-//         },
-//       },
-//       {
-//         $project: {
-//           _id: 1,
-//           reaction: 1,
-//           msgId: 1,
-//           user: { $first: "$user" },
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: "$reaction",
-//           total: { $sum: 1 },
-//           users: {
-//             $push: { $mergeObjects: ["$user", { reactionId: "$_id" }] },
-//           },
-//         },
-//       },
-//       {
-//         $project: {
-//           _id: 0,
-//           users: 1,
-//           total: 1,
-//           reaction: "$_id",
-//         },
-//       },
-//     ],
-//   },
-// },

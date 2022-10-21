@@ -44,7 +44,7 @@ const callHistory = async (req, res) => {
       .limit(limit)
       .populate(
         "users",
-        { _id: 1, name: 1, email: 1, avatar: 1, status: 1 },
+        { _id: 1, name: 1, email: 1, avatar: 1, status: 1, colorCode: 1 },
         { _id: { $ne: id } }
       )
       .transform((docs) => {

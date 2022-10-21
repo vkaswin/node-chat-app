@@ -26,7 +26,7 @@ const register = async (req, res) => {
       name,
       email,
       password: hashPassword,
-      avatar: generateRandomColor(),
+      colorCode: generateRandomColor(),
     });
 
     res.status(200).send({
@@ -36,6 +36,7 @@ const register = async (req, res) => {
         email: user.email,
         userId: user._id,
         avatar: user.avatar,
+        colorCode: user.colorCode,
       },
     });
   } catch (err) {
@@ -73,6 +74,7 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
+        colorCode: user.colorCode,
       }),
     });
   } catch (err) {

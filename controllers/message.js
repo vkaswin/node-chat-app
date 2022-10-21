@@ -33,7 +33,7 @@ const createMessage = async (req, res) => {
 
     message = await (
       await message.populate("reply")
-    ).populate("sender", "avatar name status email");
+    ).populate("sender", "avatar name status email colorCode");
 
     message = message.toObject();
     message.sender.id = message.sender._id;
@@ -197,6 +197,7 @@ const getReactionsByType = async (req, res) => {
                 name: 1,
                 email: 1,
                 avatar: 1,
+                colorCode: 1,
                 status: 1,
               },
             },
@@ -209,6 +210,7 @@ const getReactionsByType = async (req, res) => {
           name: { $first: "$user.name" },
           status: { $first: "$user.status" },
           avatar: { $first: "$user.avatar" },
+          colorCode: { $first: "$user.colorCode" },
           email: { $first: "$user.email" },
           userId: { $first: "$user._id" },
           date: "$date",
@@ -259,6 +261,7 @@ const getSeenByMsgId = async (req, res) => {
                 name: 1,
                 email: 1,
                 avatar: 1,
+                colorCode: 1,
                 status: 1,
               },
             },
@@ -272,6 +275,7 @@ const getSeenByMsgId = async (req, res) => {
           name: { $first: "$user.name" },
           email: { $first: "$user.email" },
           avatar: { $first: "$user.avatar" },
+          colorCode: { $first: "$user.colorCode" },
           status: { $first: "$user.status" },
           date: 1,
         },

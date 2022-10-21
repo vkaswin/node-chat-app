@@ -13,6 +13,7 @@ const chatSchema = mongoose.Schema(
       type: {
         name: { type: String },
         avatar: { type: String },
+        colorCode: { type: String },
         description: { type: String },
         admin: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
         createdAt: { type: Date },
