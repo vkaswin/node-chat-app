@@ -99,21 +99,36 @@ const handleReaction = async (req, res) => {
     user: { id },
     body: { reaction },
   } = req;
+
+  let msg, data;
+
   try {
-    let msg = await Message.findById(msgId);
+    msg = await Message.findById(msgId);
 
     if (!msg) return res.status(400).send({ message: "Message Id Not Found" });
 
-    let isExist = await Message.findOne({
-      _id: msgId,
-      reactions: {
-        $elemMatch: {
-          user: { $eq: id },
+    data = await Message.aggregate([
+      {
+        $match: { _id: mongoose.Types.ObjectId(msgId) },
+      },
+      {
+        $project: {
+          reaction: {
+            $first: {
+              $filter: {
+                input: "$reactions",
+                as: "reactions",
+                cond: {
+                  $eq: ["$$reactions.user", mongoose.Types.ObjectId(id)],
+                },
+              },
+            },
+          },
         },
       },
-    });
+    ]);
 
-    if (isExist) {
+    if (data) {
       await Message.updateOne(
         {
           _id: msgId,
@@ -139,12 +154,16 @@ const handleReaction = async (req, res) => {
       });
     }
 
-    socket.io.to(msg.chatId.toString()).emit("reaction", reaction, msgId);
-
     res.status(200).send({ message: "Success" });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
+  } finally {
+    if (!data || !msg) return;
+
+    socket.io
+      .to(msg.chatId.toString())
+      .emit("reaction", reaction, msgId, data?.[0]?.reaction?.reaction);
   }
 };
 

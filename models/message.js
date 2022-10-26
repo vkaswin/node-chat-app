@@ -123,32 +123,29 @@ messageScheme.statics.query = function (totalUsers, id) {
             msg: "$msg",
             seen: "$seen",
             date: "$date",
+            totalReactions: { $size: "$reactions" },
             reactions: {
-              $reduce: {
-                input: "$reactions",
-                initialValue: [],
-                in: {
-                  $concatArrays: [
-                    "$$value",
-                    {
-                      $cond: {
-                        if: { $in: ["$$this.reaction", "$$value"] },
-                        then: [],
-                        else: ["$$this.reaction"],
-                      },
-                    },
-                  ],
-                },
+              $function: {
+                body: `function (reactions) {
+                  return reactions.reduce((value, { reaction }) => {
+                    if (value.hasOwnProperty(reaction)) {
+                      return { ...value, [reaction]: value[reaction] + 1 };
+                    } else {
+                      return { ...value, [reaction]: 1 };
+                    }
+                  }, {});
+                }`,
+                args: ["$reactions"],
+                lang: "js",
               },
             },
-            totalReactions: { $size: "$reactions" },
-            isReacted: {
+            reacted: {
               $cond: {
                 if: {
                   $in: [id, "$reactions.user"],
                 },
-                then: true,
-                else: false,
+                then: { $first: "$reactions.reaction" },
+                else: null,
               },
             },
             seen: {
