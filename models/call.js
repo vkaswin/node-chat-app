@@ -5,12 +5,10 @@ const callSchema = mongoose.Schema(
     users: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
       },
     ],
     chatId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Chat",
     },
     date: {
       type: Date,
@@ -20,7 +18,6 @@ const callSchema = mongoose.Schema(
     },
     initiatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
     },
   },
   {

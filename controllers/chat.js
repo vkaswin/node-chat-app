@@ -111,7 +111,7 @@ const getChatById = async (req, res) => {
           },
         },
         { $limit: limit },
-        ...Message.schema.statics.query(chat.users.length),
+        ...Message.schema.statics.query(chat.users.length, id),
       ]);
 
       data.hasMoreBottom = totalUnReadMessages > limit;
@@ -137,7 +137,7 @@ const getChatById = async (req, res) => {
         },
       },
       { $limit: limit },
-      ...Message.schema.statics.query(chat.users.length),
+      ...Message.schema.statics.query(chat.users.length, id),
     ]);
 
     data.hasMoreTop = totalMessages > limit;
@@ -194,7 +194,7 @@ const getChatMessagesByMsgId = async (req, res) => {
       },
       ...(!latest ? [{ $sort: { date: -1 } }] : []),
       { $limit: limit },
-      ...Message.schema.statics.query(chat.users.length),
+      ...Message.schema.statics.query(chat.users.length, id),
     ]);
 
     res.status(200).send({

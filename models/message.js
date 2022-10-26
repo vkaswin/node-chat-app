@@ -59,7 +59,7 @@ const messageScheme = mongoose.Schema(
   { timestamps: true }
 );
 
-messageScheme.statics.query = function (totalUsers) {
+messageScheme.statics.query = function (totalUsers, id) {
   return [
     {
       $lookup: {
@@ -148,6 +148,15 @@ messageScheme.statics.query = function (totalUsers) {
               },
             },
             totalReactions: { $size: "$reactions" },
+            isReacted: {
+              $cond: {
+                if: {
+                  $in: [id, "$reactions.user"],
+                },
+                then: true,
+                else: false,
+              },
+            },
             seen: {
               $cond: {
                 if: { $eq: [{ $size: "$seen" }, totalUsers] },

@@ -109,6 +109,8 @@ const handleReaction = async (req, res) => {
       });
     }
 
+    socket.io.to(msg.chatId.toString()).emit("reaction", reaction, msgId);
+
     res.status(200).send({ message: "Success" });
   } catch (error) {
     console.log(error);

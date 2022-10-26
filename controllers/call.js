@@ -1,5 +1,6 @@
 const { Call, Chat } = require("../models");
 const socket = require("../socket");
+const mongoose = require("mongoose");
 
 const initiateCall = async (req, res) => {
   const {
@@ -33,33 +34,54 @@ const initiateCall = async (req, res) => {
 };
 
 const callHistory = async (req, res) => {
-  try {
-    const {
-      user: { id },
-      params: { limit, page },
-    } = req;
+  let {
+    user: { id },
+    params: { limit = 25, page = 1 },
+  } = req;
 
-    const data = await Call.find({ users: id })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate(
-        "users",
-        { _id: 1, name: 1, email: 1, avatar: 1, status: 1, colorCode: 1 },
-        { _id: { $ne: id } }
-      )
-      .transform((docs) => {
-        return docs.map((doc) => {
-          const {
-            users: [{ _id: userId, ...user }],
-            ...rest
-          } = doc.toObject();
-          return {
-            ...rest,
-            ...user,
-            userId,
-          };
-        });
-      });
+  limit = +limit;
+  page = +page;
+  id = mongoose.Types.ObjectId(id);
+
+  try {
+    const data = await Call.aggregate([
+      {
+        $match: { users: id },
+      },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "users",
+          as: "user",
+          pipeline: [
+            { $match: { _id: { $ne: id } } },
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                email: 1,
+                avatar: 1,
+                status: 1,
+                colorCode: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          user: { $first: "$user" },
+          statu: 1,
+          type: 1,
+          chatId: 1,
+          initiatedBy: 1,
+          date: 1,
+        },
+      },
+    ]);
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
