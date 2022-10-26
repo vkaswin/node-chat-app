@@ -1,4 +1,4 @@
-const { Message, Chat } = require("../models");
+const { Message, Chat, User } = require("../models");
 const socket = require("../socket");
 const mongoose = require("mongoose");
 
@@ -32,24 +32,54 @@ const createMessage = async (req, res) => {
     });
 
     await Chat.findByIdAndUpdate(chatId, {
-      $push: { messages: message._id },
       $set: { latest: message._id },
     });
 
     message = await (
-      await message.populate("reply")
-    ).populate("sender", "avatar name status email colorCode");
+      await message.populate({ path: "reply", model: "Message" })
+    ).populate({
+      path: "sender",
+      model: "User",
+      select: {
+        name: 1,
+        email: 1,
+        avatar: 1,
+        colorCode: 1,
+        status: 1,
+      },
+    });
 
     message = message.toObject();
     message.sender.id = message.sender._id;
     delete message.sender._id;
 
     res.status(200).send({ message: "Success", data: message });
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.log(error);
     res.status(400).send({ message: "Error" });
   } finally {
     if (!chat || !message) return;
+
+    if (!chat.group) {
+      chat = await chat.populate({
+        model: "User",
+        path: "users",
+        select: {
+          name: 1,
+          email: 1,
+          avatar: 1,
+          colorCode: 1,
+          status: 1,
+        },
+        match: { _id: { $ne: id } },
+      });
+
+      chat = chat.toObject();
+      chat.user = chat.users[0];
+      chat.user.id = chat.user._id;
+      delete chat.user._id;
+      delete chat.users;
+    }
 
     let rooms = socket.getRooms();
 

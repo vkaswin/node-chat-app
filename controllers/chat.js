@@ -386,13 +386,14 @@ const createGroupChat = async (req, res) => {
 };
 
 const addToFavourite = async (req, res) => {
-  try {
-    const {
-      user: { id },
-      params: { chatId },
-    } = req;
+  let {
+    user: { id },
+    params: { chatId },
+  } = req;
+  let chat;
 
-    const chat = await Chat.findById(chatId);
+  try {
+    chat = await Chat.findById(chatId);
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
@@ -406,16 +407,63 @@ const addToFavourite = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(200).send({ message: "Error" });
+  } finally {
+    if (!chat) return;
+
+    let [data] = await Chat.aggregate([
+      { $match: { _id: mongoose.Types.ObjectId(chatId) } },
+      {
+        $lookup: {
+          from: "messages",
+          foreignField: "_id",
+          localField: "latest",
+          as: "message",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          foreignField: "_id",
+          localField: "users",
+          as: "users",
+          pipeline: [
+            {
+              $match: { _id: { $ne: mongoose.Types.ObjectId(id) } },
+            },
+            {
+              $project: {
+                _id: 0,
+                id: "$_id",
+                name: 1,
+                email: 1,
+                status: 1,
+                colorCode: 1,
+                avatar: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          user: { $first: "$users" },
+          msg: { $first: "$message.msg" },
+          date: { $first: "$message.date" },
+          _id: chatId,
+        },
+      },
+    ]);
+
+    socket.io.to(id).emit("favourite", data, true, !!data.group);
   }
 };
 
 const removeFromFavourite = async (req, res) => {
+  let {
+    user: { id },
+    params: { chatId },
+  } = req;
   try {
-    const {
-      user: { id },
-      params: { chatId },
-    } = req;
-
     const chat = await Chat.findById(chatId);
 
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
@@ -430,6 +478,8 @@ const removeFromFavourite = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(200).send({ message: "Error" });
+  } finally {
+    socket.io.to(id).emit("favourite", { _id: chatId }, false);
   }
 };
 

@@ -47,7 +47,7 @@ const socketHandler = async (socket) => {
 
   socket.on("start-typing", (chatId, user, name) => {
     let rooms = socket.adapter.rooms;
-    if (typeof user === "string") console.log(rooms.has(user), rooms);
+
     if (typeof user === "string" && rooms.has(user))
       return socket.to(user).emit("start-typing", chatId, name);
 
@@ -61,7 +61,6 @@ const socketHandler = async (socket) => {
 
   socket.on("end-typing", (chatId, user, name) => {
     let rooms = socket.adapter.rooms;
-    if (typeof user === "string") console.log(rooms.has(user));
 
     if (typeof user === "string" && rooms.has(user))
       return socket.to(user).emit("end-typing", chatId, name);

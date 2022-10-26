@@ -8,7 +8,6 @@ const messageScheme = mongoose.Schema(
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
     },
     msg: {
       type: String,
@@ -32,7 +31,6 @@ const messageScheme = mongoose.Schema(
     },
     reply: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
     },
     reactions: {
       type: [
@@ -50,10 +48,6 @@ const messageScheme = mongoose.Schema(
       ],
       default: [],
       _id: false,
-    },
-    overallReactions: {
-      type: [mongoose.Schema.Types.String],
-      default: [],
     },
   },
   { timestamps: true }

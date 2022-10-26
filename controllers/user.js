@@ -39,8 +39,8 @@ const register = async (req, res) => {
         colorCode: user.colorCode,
       },
     });
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.log(error);
     res.status(400).send({ message: "Error" });
   }
 };
@@ -77,8 +77,8 @@ const login = async (req, res) => {
         colorCode: user.colorCode,
       }),
     });
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.log(error);
     res.status(400).send({ message: "Error" });
   }
 };
