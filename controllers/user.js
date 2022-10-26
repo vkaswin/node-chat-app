@@ -125,29 +125,42 @@ const getAllUsers = async (req, res) => {
 };
 
 const searchUsers = async (req, res) => {
-  try {
-    const {
-      user: { id },
-      query: { search, limit, page },
-    } = req;
+  let {
+    user: { id },
+    query: { search, limit, page },
+  } = req;
 
-    let data = await User.find(
+  try {
+    limit = +limit;
+    page = +page;
+
+    let data = await User.aggregate([
       {
-        _id: { $ne: id },
-        $or: [
-          {
-            name: { $regex: search, $options: "i" },
-          },
-          {
-            email: { $regex: search, $options: "i" },
-          },
-        ],
+        $match: {
+          _id: { $ne: id },
+          $or: [
+            {
+              name: { $regex: search, $options: "i" },
+            },
+            {
+              email: { $regex: search, $options: "i" },
+            },
+          ],
+        },
       },
-      { password: 0 }
-    )
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({ name: 1 });
+      { $sort: { name: 1 } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          avatar: 1,
+          colorCode: 1,
+          status: 1,
+        },
+      },
+    ]);
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {

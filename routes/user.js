@@ -20,6 +20,6 @@ router.get("/detail/:userId", getUserById);
 
 router.get("/all", getAllUsers);
 
-router.get("/search", searchUsers);
+router.get("/list", searchUsers);
 
 module.exports = router;
