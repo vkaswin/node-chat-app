@@ -34,7 +34,7 @@ const register = async (req, res) => {
       data: {
         name: user.name,
         email: user.email,
-        userId: user._id,
+        id: user._id,
         avatar: user.avatar,
         colorCode: user.colorCode,
       },
@@ -70,7 +70,7 @@ const login = async (req, res) => {
     res.status(200).send({
       message: "Login success",
       token: generateJwtToken({
-        id: user.id,
+        id: user._id,
         name: user.name,
         email: user.email,
         avatar: user.avatar,
@@ -91,11 +91,10 @@ const getUserById = async (req, res) => {
       params: { userId },
     } = req;
 
-    let data = await User.findById(userId).select({
-      name: 1,
-      _id: 1,
-      email: 1,
-    });
+    let data = await User.findById(
+      userId,
+      "name email colorCode avatar status"
+    );
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {

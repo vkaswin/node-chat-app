@@ -38,7 +38,6 @@ const getChatById = async (req, res) => {
                   { $match: { _id: { $ne: id } } },
                   {
                     $project: {
-                      userId: "$_id",
                       name: 1,
                       email: 1,
                       status: 1,
@@ -71,7 +70,6 @@ const getChatById = async (req, res) => {
                   },
                   colorCode: { $first: "$user.colorCode" },
                   status: { $first: "$user.status" },
-                  userId: { $first: "$user.id" },
                   email: { $first: "$user.email" },
                   userId: { $first: "$user._id" },
                 }),

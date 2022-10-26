@@ -60,7 +60,6 @@ const callHistory = async (req, res) => {
             { $match: { _id: { $ne: id } } },
             {
               $project: {
-                _id: 1,
                 name: 1,
                 email: 1,
                 avatar: 1,
@@ -74,7 +73,7 @@ const callHistory = async (req, res) => {
       {
         $project: {
           user: { $first: "$user" },
-          statu: 1,
+          status: 1,
           type: 1,
           chatId: 1,
           initiatedBy: 1,

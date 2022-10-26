@@ -229,8 +229,6 @@ const getReactionsByType = async (req, res) => {
           pipeline: [
             {
               $project: {
-                id: "$_id",
-                _id: 0,
                 name: 1,
                 email: 1,
                 avatar: 1,
@@ -243,13 +241,12 @@ const getReactionsByType = async (req, res) => {
       },
       {
         $project: {
-          _id: 0,
           name: { $first: "$user.name" },
           status: { $first: "$user.status" },
           avatar: { $first: "$user.avatar" },
           colorCode: { $first: "$user.colorCode" },
           email: { $first: "$user.email" },
-          userId: { $first: "$user._id" },
+          _id: { $first: "$user._id" },
           date: "$date",
         },
       },
@@ -293,8 +290,6 @@ const getSeenByMsgId = async (req, res) => {
           pipeline: [
             {
               $project: {
-                _id: 0,
-                id: "$_id",
                 name: 1,
                 email: 1,
                 avatar: 1,
@@ -307,8 +302,7 @@ const getSeenByMsgId = async (req, res) => {
       },
       {
         $project: {
-          _id: 0,
-          id: { $first: "$user.id" },
+          _id: { $first: "$user._id" },
           name: { $first: "$user.name" },
           email: { $first: "$user.email" },
           avatar: { $first: "$user.avatar" },
