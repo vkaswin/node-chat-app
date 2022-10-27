@@ -563,6 +563,27 @@ const markAsRead = async (req, res) => {
   }
 };
 
+const getChatIdByUserId = async (req, res) => {
+  let {
+    user: { id },
+    params: { userId },
+  } = req;
+
+  try {
+    let chat = await Chat.findOne(
+      { users: { $all: [id, userId] } },
+      { _id: 1 }
+    );
+
+    if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
+
+    res.status(200).send({ message: "Success", data: chat._id });
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({ message: "Error" });
+  }
+};
+
 module.exports = {
   getChatsByType,
   getChatMessagesByMsgId,
@@ -572,4 +593,5 @@ module.exports = {
   removeFromFavourite,
   markAsReadByMsgId,
   markAsRead,
+  getChatIdByUserId,
 };

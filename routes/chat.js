@@ -8,6 +8,7 @@ const {
   removeFromFavourite,
   markAsReadByMsgId,
   markAsRead,
+  getChatIdByUserId,
 } = require("../controllers/chat");
 const { verifyToken } = require("../middleware");
 const router = Router();
@@ -23,5 +24,6 @@ router
   .delete(removeFromFavourite);
 router.put("/markAsRead/all/:chatId", markAsRead);
 router.put("/markAsRead/:chatId/:msgId", markAsReadByMsgId);
+router.get("/chatId/:userId", getChatIdByUserId);
 
 module.exports = router;

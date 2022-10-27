@@ -110,12 +110,29 @@ const getAllUsers = async (req, res) => {
       query: { limit, page },
     } = req;
 
-    let data = await User.find({ _id: { $ne: id } }, { password: 0 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .sort({
-        name: 1,
-      });
+    let data = await User.aggregate([
+      {
+        $match: {
+          _id: { $ne: id },
+        },
+      },
+      {
+        $sort: {
+          name: 1,
+        },
+      },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          avatar: 1,
+          colorCode: 1,
+          status: 1,
+        },
+      },
+    ]);
 
     res.status(200).send({ message: "Success", data });
   } catch (error) {
