@@ -274,8 +274,6 @@ const getChatsByType = async (req, res) => {
             pipeline: [
               {
                 $project: {
-                  _id: 0,
-                  id: "$_id",
                   name: 1,
                   email: 1,
                   avatar: 1,
@@ -291,9 +289,12 @@ const getChatsByType = async (req, res) => {
             _id: 1,
             msg: "$latest.msg",
             date: "$latest.date",
-            user: {
-              $first: "$user",
-            },
+            userId: { $first: "$user._id" },
+            name: { $first: "$user.name" },
+            email: { $first: "$user.email" },
+            avatar: { $first: "$user.avatar" },
+            colorCode: { $first: "$user.colorCode" },
+            status: { $first: "$user.status" },
           },
         },
       ]);
@@ -333,11 +334,9 @@ const getChatsByType = async (req, res) => {
         },
         {
           $project: {
-            group: {
-              name: "$group.name",
-              avatar: "$group.avatar",
-              colorCode: "$group.colorCode",
-            },
+            name: "$group.name",
+            avatar: "$group.avatar",
+            colorCode: "$group.colorCode",
             msg: "$latest.msg",
             date: "$latest.date",
           },

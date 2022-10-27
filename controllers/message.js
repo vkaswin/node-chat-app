@@ -107,26 +107,14 @@ const handleReaction = async (req, res) => {
 
     if (!msg) return res.status(400).send({ message: "Message Id Not Found" });
 
-    data = await Message.aggregate([
-      {
-        $match: { _id: mongoose.Types.ObjectId(msgId) },
-      },
-      {
-        $project: {
-          reaction: {
-            $first: {
-              $filter: {
-                input: "$reactions",
-                as: "reactions",
-                cond: {
-                  $eq: ["$$reactions.user", mongoose.Types.ObjectId(id)],
-                },
-              },
-            },
-          },
+    data = await Message.findOne({
+      _id: msgId,
+      reactions: {
+        $elemMatch: {
+          user: { $eq: id },
         },
       },
-    ]);
+    });
 
     if (data) {
       await Message.updateOne(
@@ -161,9 +149,13 @@ const handleReaction = async (req, res) => {
   } finally {
     if (!data || !msg) return;
 
+    let { reaction } = data.reactions.find(({ user }) => {
+      return user === id;
+    });
+
     socket.io
       .to(msg.chatId.toString())
-      .emit("reaction", reaction, msgId, data?.[0]?.reaction?.reaction);
+      .emit("reaction", reaction, msgId, reaction);
   }
 };
 
