@@ -142,7 +142,7 @@ messageScheme.statics.query = function (totalUsers, id) {
             reacted: {
               $cond: {
                 if: {
-                  $in: [id, "$reactions.user"],
+                  $in: [mongoose.Types.ObjectId(id), "$reactions.user"],
                 },
                 then: { $first: "$reactions.reaction" },
                 else: null,

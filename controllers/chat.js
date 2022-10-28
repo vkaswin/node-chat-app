@@ -514,17 +514,14 @@ const markAsRead = async (req, res) => {
 
   try {
     chat = await Chat.findById(chatId);
+
     if (!chat) return res.status(400).send({ message: "Chat Id Not Found" });
 
     msgId = await Message.aggregate([
       {
         $match: {
           chatId: mongoose.Types.ObjectId(chatId),
-          seen: {
-            $elemMatch: {
-              user: { $ne: mongoose.Types.ObjectId(id) },
-            },
-          },
+          "seen.user": { $ne: mongoose.Types.ObjectId(id) },
         },
       },
       {
@@ -535,12 +532,10 @@ const markAsRead = async (req, res) => {
       },
     ]);
 
-    if (msgId.length === 0) return res.status(200).send({ message: "Success" });
-
     await Message.updateMany(
       {
         chatId,
-        seen: { $elemMatch: { user: { $ne: id } } },
+        "seen.user": { $ne: id },
       },
       {
         $push: {
@@ -552,7 +547,7 @@ const markAsRead = async (req, res) => {
       }
     );
 
-    res.status(200).send({ message: "Success" });
+    res.status(200).send({ message: "Success", msgId: msgId.length });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });

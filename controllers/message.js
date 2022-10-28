@@ -147,15 +147,19 @@ const handleReaction = async (req, res) => {
     console.log(error);
     res.status(400).send({ message: "Error" });
   } finally {
-    if (!data || !msg) return;
+    if (!msg) return;
 
-    let { reaction } = data.reactions.find(({ user }) => {
-      return user === id;
-    });
+    const getOldReaction = () => {
+      if (!data) return null;
+      let { reaction } = data.reactions.find(({ user }) => {
+        return user.toString() === id;
+      });
+      return reaction;
+    };
 
     socket.io
       .to(msg.chatId.toString())
-      .emit("reaction", reaction, msgId, reaction);
+      .emit("reaction", reaction, msgId, getOldReaction());
   }
 };
 
