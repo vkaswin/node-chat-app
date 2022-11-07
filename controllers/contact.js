@@ -40,13 +40,12 @@ const getContact = async (req, res) => {
             $first: "$user",
           },
           chatId: 1,
-          word: 1,
         },
       },
       {
         $project: {
           chatId: 1,
-          word: 1,
+          word: { $toUpper: { $substr: ["$user.name", 0, 1] } },
           name: "$user.name",
           email: "$user.email",
           avatar: "$user.avatar",
@@ -134,7 +133,6 @@ const createContact = async (req, res) => {
       addedBy: id,
       user: userId,
       chatId: chat ? chat._id : req.chatId,
-      word: user.name.charAt(0).toUpperCase(),
     });
 
     res.status(200).send({ message: "Success", data: data.toObject() });

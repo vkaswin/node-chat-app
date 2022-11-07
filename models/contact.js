@@ -12,9 +12,6 @@ const contactScheme = mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
     },
-    word: {
-      type: String,
-    },
   },
   {
     timestamps: true,
