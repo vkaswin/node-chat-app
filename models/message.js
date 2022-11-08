@@ -64,9 +64,8 @@ messageScheme.statics.query = function (totalUsers, id) {
         pipeline: [
           {
             $project: {
-              id: "$_id",
-              _id: 0,
               msg: 1,
+              date: 1,
             },
           },
         ],

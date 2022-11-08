@@ -149,17 +149,7 @@ const handleReaction = async (req, res) => {
   } finally {
     if (!msg) return;
 
-    const getOldReaction = () => {
-      if (!data) return null;
-      let { reaction } = data.reactions.find(({ user }) => {
-        return user.toString() === id;
-      });
-      return reaction;
-    };
-
-    socket.io
-      .to(msg.chatId.toString())
-      .emit("reaction", reaction, msgId, getOldReaction());
+    socket.io.to(msg.chatId.toString()).emit("reaction", reaction, msgId);
   }
 };
 

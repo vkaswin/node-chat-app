@@ -198,13 +198,37 @@ const getChatMessagesByMsgId = async (req, res) => {
     res.status(200).send({
       message: "Success",
       data: {
-        list,
+        list: latest ? list : list.reverse(),
         hasMore: total - limit > 0,
       },
     });
   } catch (error) {
     console.log(error);
     res.status(400).send({ message: "Error" });
+  }
+};
+
+const getChatMessageByRange = async (req, res) => {
+  let {
+    chatId,
+    query: { startDate, endDate },
+  } = req;
+
+  try {
+    let data = await Message.aggregate([
+      {
+        $match: {
+          chatId: mongoose.Types.ObjectId(chatId),
+          date: {
+            $gte: { $toDate: startDate },
+            $lt: { $toDate: endDate },
+          },
+        },
+      },
+    ]);
+    res.status(200).send({ message: "Success", data });
+  } catch (error) {
+    console.log(error, "error");
   }
 };
 
@@ -588,4 +612,5 @@ module.exports = {
   markAsReadByMsgId,
   markAsRead,
   getChatIdByUserId,
+  getChatMessageByRange,
 };
