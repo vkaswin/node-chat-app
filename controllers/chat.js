@@ -109,7 +109,7 @@ const getChatById = async (req, res) => {
           },
         },
         { $limit: limit },
-        ...Message.schema.statics.query(chat.users.length, id),
+        ...Message.schema.statics.query({ totalUsers: chat.users.length, id }),
       ]);
 
       data.hasMoreBottom = totalUnReadMessages > limit;
@@ -135,7 +135,7 @@ const getChatById = async (req, res) => {
         },
       },
       { $limit: limit },
-      ...Message.schema.statics.query(chat.users.length, id),
+      ...Message.schema.statics.query({ totalUsers: chat.users.length, id }),
     ]);
 
     data.hasMoreTop = totalMessages > limit;
@@ -192,7 +192,7 @@ const getChatMessagesByMsgId = async (req, res) => {
       },
       ...(!latest ? [{ $sort: { date: -1 } }] : []),
       { $limit: limit },
-      ...Message.schema.statics.query(chat.users.length, id),
+      ...Message.schema.statics.query({ totalUsers: chat.users.length, id }),
     ]);
 
     res.status(200).send({
@@ -210,22 +210,33 @@ const getChatMessagesByMsgId = async (req, res) => {
 
 const getChatMessageByRange = async (req, res) => {
   let {
-    chatId,
+    user: { id },
+    params: { chatId },
     query: { startDate, endDate },
   } = req;
 
   try {
+    let chat = await Chat.findById(chatId);
+
+    if (!chat) return res.status(400).send({ message: "Invalid Chat Id" });
+
     let data = await Message.aggregate([
       {
         $match: {
           chatId: mongoose.Types.ObjectId(chatId),
           date: {
-            $gte: { $toDate: startDate },
-            $lt: { $toDate: endDate },
+            $gte: new Date(startDate),
+            $lt: new Date(endDate),
           },
         },
       },
+      ...Message.schema.statics.query({
+        totalUsers: chat.users.length,
+        id,
+        sort: -1,
+      }),
     ]);
+
     res.status(200).send({ message: "Success", data });
   } catch (error) {
     console.log(error, "error");

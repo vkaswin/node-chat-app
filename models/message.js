@@ -53,7 +53,7 @@ const messageScheme = mongoose.Schema(
   { timestamps: true }
 );
 
-messageScheme.statics.query = function (totalUsers, id) {
+messageScheme.statics.query = function ({ totalUsers, id, sort = 1 }) {
   return [
     {
       $lookup: {
@@ -167,7 +167,7 @@ messageScheme.statics.query = function (totalUsers, id) {
     },
     {
       $sort: {
-        day: 1,
+        day: sort,
       },
     },
   ];
